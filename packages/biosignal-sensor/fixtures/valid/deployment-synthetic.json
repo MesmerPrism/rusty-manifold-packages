@@ -1,0 +1,17 @@
+{
+  "$schema": "rusty.manifold.deployment.manifest.v1",
+  "deployment_id": "deployment.biosignal_synthetic",
+  "target_host_id": "host.synthetic",
+  "package_id": "package.biosignal_sensor",
+  "selected_modules": [
+    "module.biosignal_sensor.provider",
+    "module.breath.volume_from_motion",
+    "module.beat.hrv_window",
+    "module.beat.coherence",
+    "module.breath.dynamics"
+  ],
+  "endpoint_id": "endpoint.control_loopback",
+  "security_policy": "policy.local_process_only",
+  "artifact_policy": "policy.no_artifacts",
+  "session_output_policy": "policy.session_summary_only"
+}

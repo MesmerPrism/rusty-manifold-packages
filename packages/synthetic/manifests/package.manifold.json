@@ -1,0 +1,34 @@
+{
+  "$schema": "rusty.manifold.package.manifest.v1",
+  "package_id": "package.synthetic_wave",
+  "version": "0.1.0",
+  "license": "MIT OR Apache-2.0",
+  "exports": {
+    "modules": [
+      "module.synthetic_wave_provider",
+      "module.synthetic_wave_processor"
+    ],
+    "streams": [
+      "stream.synthetic_wave",
+      "stream.synthetic_rms"
+    ],
+    "commands": [
+      "command.module.configure",
+      "command.module.start",
+      "command.module.stop"
+    ]
+  },
+  "validation_commands": [
+    {
+      "command_id": "validation.package_workspace",
+      "command": "python tools/check_packages.py --repo-root ."
+    }
+  ],
+  "safety": {
+    "uses_network": false,
+    "uses_subprocess": false,
+    "uses_native_code": false,
+    "uses_device_api": false,
+    "carries_binary_payloads": false
+  }
+}

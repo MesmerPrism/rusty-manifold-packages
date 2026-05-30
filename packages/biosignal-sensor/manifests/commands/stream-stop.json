@@ -1,0 +1,10 @@
+{
+  "$schema": "rusty.manifold.command.descriptor.v1",
+  "command_id": "command.stream.stop",
+  "target_scope": "module.biosignal_sensor.provider",
+  "input_schema": "rusty.manifold.command.input.stream_stop.v1",
+  "required_capability": "manifold.device.access",
+  "required_lease_scope": "module.biosignal_sensor.provider",
+  "safety_class": "bounded_mutation",
+  "operator_confirmation_required": false
+}

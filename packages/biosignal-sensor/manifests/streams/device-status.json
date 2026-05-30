@@ -1,0 +1,20 @@
+{
+  "$schema": "rusty.manifold.stream.manifest.v1",
+  "stream_id": "stream.device.status",
+  "source_module_id": "module.biosignal_sensor.provider",
+  "semantic_family": "device.status",
+  "sample_schema": "rusty.manifold.sample.device_status.v1",
+  "rate_class": "event",
+  "timestamp_domains": [
+    "clock.host_monotonic"
+  ],
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "internal",
+  "transport_offers": [],
+  "subscription": {
+    "ui_subscribable": true,
+    "max_subscribers": 8
+  }
+}

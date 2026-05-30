@@ -1,0 +1,46 @@
+{
+  "$schema": "rusty.manifold.module.manifest.v1",
+  "module_id": "module.beat.coherence",
+  "module_kind": "processor",
+  "label": "Beat Coherence",
+  "version": "0.1.0",
+  "lifecycle_states": [
+    "available",
+    "running",
+    "degraded",
+    "stopped",
+    "failed"
+  ],
+  "provides_streams": [
+    "stream.beat.coherence"
+  ],
+  "consumes_streams": [
+    "stream.biosignal.beat_interval"
+  ],
+  "accepted_commands": [
+    "command.processor.reset"
+  ],
+  "required_capabilities": [
+    "manifold.module.control"
+  ],
+  "clock_policy": {
+    "source_domain": "clock.host_monotonic",
+    "correlation_required": true
+  },
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "platform_support": [
+    "backend.synthetic",
+    "backend.replay",
+    "backend.desktop_host",
+    "backend.mobile_device",
+    "backend.headset_device"
+  ],
+  "issue_codes": [
+    "issue.input_stream_missing",
+    "issue.window_not_ready",
+    "issue.quality_low"
+  ]
+}

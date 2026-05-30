@@ -1,0 +1,10 @@
+{
+  "$schema": "rusty.manifold.command.descriptor.v1",
+  "command_id": "command.device.connect",
+  "target_scope": "module.biosignal_sensor.provider",
+  "input_schema": "rusty.manifold.command.input.device_connect.v1",
+  "required_capability": "manifold.device.access",
+  "required_lease_scope": "module.biosignal_sensor.provider",
+  "safety_class": "operator_confirmed",
+  "operator_confirmation_required": true
+}

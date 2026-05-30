@@ -1,0 +1,21 @@
+{
+  "$schema": "rusty.manifold.stream.manifest.v1",
+  "stream_id": "stream.motion.accelerometer",
+  "source_module_id": "module.biosignal_sensor.provider",
+  "semantic_family": "motion.accelerometer",
+  "sample_schema": "rusty.manifold.sample.accelerometer_xyz.v1",
+  "rate_class": "periodic",
+  "timestamp_domains": [
+    "clock.source_device",
+    "clock.host_monotonic"
+  ],
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "transport_offers": [],
+  "subscription": {
+    "ui_subscribable": false,
+    "max_subscribers": 4
+  }
+}

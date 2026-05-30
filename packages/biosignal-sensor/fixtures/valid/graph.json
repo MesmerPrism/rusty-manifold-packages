@@ -1,0 +1,61 @@
+{
+  "$schema": "rusty.manifold.graph.manifest.v1",
+  "graph_id": "graph.biosignal_processing",
+  "graph_revision": 1,
+  "nodes": [
+    {
+      "node_id": "node.biosignal_provider",
+      "module_id": "module.biosignal_sensor.provider"
+    },
+    {
+      "node_id": "node.breath_volume",
+      "module_id": "module.breath.volume_from_motion"
+    },
+    {
+      "node_id": "node.hrv_window",
+      "module_id": "module.beat.hrv_window"
+    },
+    {
+      "node_id": "node.beat_coherence",
+      "module_id": "module.beat.coherence"
+    },
+    {
+      "node_id": "node.breath_dynamics",
+      "module_id": "module.breath.dynamics"
+    }
+  ],
+  "edges": [
+    {
+      "edge_id": "edge.acc_to_breath_volume",
+      "source_node_id": "node.biosignal_provider",
+      "source_stream_id": "stream.motion.accelerometer",
+      "target_node_id": "node.breath_volume",
+      "target_input_id": "stream.motion.accelerometer"
+    },
+    {
+      "edge_id": "edge.beat_to_hrv",
+      "source_node_id": "node.biosignal_provider",
+      "source_stream_id": "stream.biosignal.beat_interval",
+      "target_node_id": "node.hrv_window",
+      "target_input_id": "stream.biosignal.beat_interval"
+    },
+    {
+      "edge_id": "edge.beat_to_coherence",
+      "source_node_id": "node.biosignal_provider",
+      "source_stream_id": "stream.biosignal.beat_interval",
+      "target_node_id": "node.beat_coherence",
+      "target_input_id": "stream.biosignal.beat_interval"
+    },
+    {
+      "edge_id": "edge.breath_volume_to_dynamics",
+      "source_node_id": "node.breath_volume",
+      "source_stream_id": "stream.breath.volume",
+      "target_node_id": "node.breath_dynamics",
+      "target_input_id": "stream.breath.volume"
+    }
+  ],
+  "required_capabilities": [
+    "manifold.graph.run",
+    "manifold.device.access"
+  ]
+}

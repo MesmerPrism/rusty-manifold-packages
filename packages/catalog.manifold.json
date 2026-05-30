@@ -1,0 +1,20 @@
+{
+  "$schema": "rusty.manifold.package.catalog.v1",
+  "catalog_id": "catalog.first_party",
+  "packages": [
+    {
+      "package_id": "package.synthetic_wave",
+      "manifest_path": "packages/synthetic/manifests/package.manifold.json"
+    },
+    {
+      "package_id": "package.biosignal_sensor",
+      "manifest_path": "packages/biosignal-sensor/manifests/package.manifold.json"
+    }
+  ],
+  "validation_commands": [
+    {
+      "command_id": "validation.package_workspace",
+      "command": "python tools/check_packages.py --repo-root ."
+    }
+  ]
+}

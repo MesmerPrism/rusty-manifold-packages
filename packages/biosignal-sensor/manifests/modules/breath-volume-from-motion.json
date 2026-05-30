@@ -1,0 +1,47 @@
+{
+  "$schema": "rusty.manifold.module.manifest.v1",
+  "module_id": "module.breath.volume_from_motion",
+  "module_kind": "processor",
+  "label": "Breath Volume From Motion",
+  "version": "0.1.0",
+  "lifecycle_states": [
+    "available",
+    "running",
+    "degraded",
+    "stopped",
+    "failed"
+  ],
+  "provides_streams": [
+    "stream.breath.volume"
+  ],
+  "consumes_streams": [
+    "stream.motion.accelerometer"
+  ],
+  "accepted_commands": [
+    "command.processor.calibrate",
+    "command.processor.reset"
+  ],
+  "required_capabilities": [
+    "manifold.module.control"
+  ],
+  "clock_policy": {
+    "source_domain": "clock.host_monotonic",
+    "correlation_required": true
+  },
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "platform_support": [
+    "backend.synthetic",
+    "backend.replay",
+    "backend.desktop_host",
+    "backend.mobile_device",
+    "backend.headset_device"
+  ],
+  "issue_codes": [
+    "issue.input_stream_missing",
+    "issue.calibration_required",
+    "issue.quality_low"
+  ]
+}

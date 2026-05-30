@@ -1,0 +1,20 @@
+{
+  "$schema": "rusty.manifold.stream.manifest.v1",
+  "stream_id": "stream.beat.coherence",
+  "source_module_id": "module.beat.coherence",
+  "semantic_family": "beat.coherence",
+  "sample_schema": "rusty.manifold.sample.beat_coherence.v1",
+  "rate_class": "periodic",
+  "timestamp_domains": [
+    "clock.host_monotonic"
+  ],
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "transport_offers": [],
+  "subscription": {
+    "ui_subscribable": true,
+    "max_subscribers": 8
+  }
+}

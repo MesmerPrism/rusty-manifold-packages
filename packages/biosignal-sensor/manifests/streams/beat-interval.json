@@ -1,0 +1,21 @@
+{
+  "$schema": "rusty.manifold.stream.manifest.v1",
+  "stream_id": "stream.biosignal.beat_interval",
+  "source_module_id": "module.biosignal_sensor.provider",
+  "semantic_family": "biosignal.beat_interval",
+  "sample_schema": "rusty.manifold.sample.beat_interval.v1",
+  "rate_class": "event",
+  "timestamp_domains": [
+    "clock.source_device",
+    "clock.host_monotonic"
+  ],
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "transport_offers": [],
+  "subscription": {
+    "ui_subscribable": true,
+    "max_subscribers": 8
+  }
+}

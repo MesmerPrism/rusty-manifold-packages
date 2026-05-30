@@ -1,0 +1,60 @@
+{
+  "$schema": "rusty.manifold.module.manifest.v1",
+  "module_id": "module.biosignal_sensor.provider",
+  "module_kind": "provider",
+  "label": "Biosignal Sensor Provider",
+  "version": "0.1.0",
+  "lifecycle_states": [
+    "available",
+    "starting",
+    "running",
+    "stopping",
+    "stopped",
+    "failed"
+  ],
+  "provides_streams": [
+    "stream.biosignal.heart_rate",
+    "stream.biosignal.beat_interval",
+    "stream.biosignal.waveform",
+    "stream.motion.accelerometer",
+    "stream.device.status",
+    "stream.backend.health"
+  ],
+  "consumes_streams": [],
+  "accepted_commands": [
+    "command.device.scan",
+    "command.device.connect",
+    "command.device.configure",
+    "command.stream.start",
+    "command.stream.stop",
+    "command.device.disconnect"
+  ],
+  "required_capabilities": [
+    "manifold.module.control",
+    "manifold.device.access"
+  ],
+  "clock_policy": {
+    "source_domain": "clock.source_device",
+    "correlation_required": true
+  },
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "platform_support": [
+    "backend.synthetic",
+    "backend.replay",
+    "backend.desktop_host",
+    "backend.mobile_device",
+    "backend.headset_device"
+  ],
+  "issue_codes": [
+    "issue.device_permission_missing",
+    "issue.device_busy",
+    "issue.device_not_found",
+    "issue.stream_unsupported",
+    "issue.backend_missing",
+    "issue.malformed_frame",
+    "issue.timestamp_correlation_missing"
+  ]
+}

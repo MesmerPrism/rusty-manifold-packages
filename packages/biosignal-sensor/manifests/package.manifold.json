@@ -1,0 +1,50 @@
+{
+  "$schema": "rusty.manifold.package.manifest.v1",
+  "package_id": "package.biosignal_sensor",
+  "version": "0.1.0",
+  "license": "MIT OR Apache-2.0",
+  "exports": {
+    "modules": [
+      "module.biosignal_sensor.provider",
+      "module.breath.volume_from_motion",
+      "module.beat.hrv_window",
+      "module.beat.coherence",
+      "module.breath.dynamics"
+    ],
+    "streams": [
+      "stream.biosignal.heart_rate",
+      "stream.biosignal.beat_interval",
+      "stream.biosignal.waveform",
+      "stream.motion.accelerometer",
+      "stream.device.status",
+      "stream.backend.health",
+      "stream.breath.volume",
+      "stream.beat.hrv_window",
+      "stream.beat.coherence",
+      "stream.breath.dynamics"
+    ],
+    "commands": [
+      "command.device.scan",
+      "command.device.connect",
+      "command.device.configure",
+      "command.stream.start",
+      "command.stream.stop",
+      "command.device.disconnect",
+      "command.processor.calibrate",
+      "command.processor.reset"
+    ]
+  },
+  "validation_commands": [
+    {
+      "command_id": "validation.package_workspace",
+      "command": "python tools/check_packages.py --repo-root ."
+    }
+  ],
+  "safety": {
+    "uses_network": false,
+    "uses_subprocess": false,
+    "uses_native_code": false,
+    "uses_device_api": true,
+    "carries_binary_payloads": false
+  }
+}
