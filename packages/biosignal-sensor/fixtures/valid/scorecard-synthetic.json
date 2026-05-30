@@ -1,0 +1,34 @@
+{
+  "$schema": "rusty.manifold.validation.scorecard.v1",
+  "scorecard_id": "scorecard.biosignal_synthetic_contract",
+  "target_id": "package.biosignal_sensor",
+  "target_revision": 1,
+  "status": "pass",
+  "checks": [
+    {
+      "check_id": "validation.check.provider_processor_split",
+      "status": "pass",
+      "evidence": "Direct source streams stay on the provider; derived breath and beat streams stay on processor modules.",
+      "issue_codes": []
+    },
+    {
+      "check_id": "validation.check.timestamp_domains",
+      "status": "pass",
+      "evidence": "Direct biosignal and motion streams carry source and host timestamp domains.",
+      "issue_codes": []
+    },
+    {
+      "check_id": "validation.check.backend_evidence",
+      "status": "pass",
+      "evidence": "Runtime-state fixtures report selected backend evidence for every selected module.",
+      "issue_codes": []
+    },
+    {
+      "check_id": "validation.check.command_rejections",
+      "status": "pass",
+      "evidence": "Damaged command fixtures cover permission, busy source, unsupported stream, backend missing, timeout, and malformed frame cases.",
+      "issue_codes": []
+    }
+  ],
+  "issues": []
+}

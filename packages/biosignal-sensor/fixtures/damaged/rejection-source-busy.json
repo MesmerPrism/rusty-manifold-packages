@@ -1,0 +1,8 @@
+{
+  "$schema": "rusty.manifold.command.rejection.v1",
+  "request_id": "request.biosignal.source_busy",
+  "rejection_code": "rejection.source_busy",
+  "message": "The requested source is already owned by another session.",
+  "retryable": true,
+  "current_revision": 1
+}

@@ -1,0 +1,15 @@
+{
+  "$schema": "rusty.manifold.module.runtime_state.v1",
+  "module_id": "module.beat.hrv_window",
+  "runtime_revision": 1,
+  "lifecycle": "running",
+  "health": "healthy",
+  "selected_backend": "backend.synthetic",
+  "active_streams": [
+    "stream.beat.hrv_window"
+  ],
+  "active_commands": [
+    "command.processor.reset"
+  ],
+  "issues": []
+}

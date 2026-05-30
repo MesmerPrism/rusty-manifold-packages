@@ -1,0 +1,25 @@
+{
+  "$schema": "rusty.manifold.module.runtime_state.v1",
+  "module_id": "module.biosignal_sensor.provider",
+  "runtime_revision": 1,
+  "lifecycle": "running",
+  "health": "healthy",
+  "selected_backend": "backend.synthetic",
+  "active_streams": [
+    "stream.biosignal.heart_rate",
+    "stream.biosignal.beat_interval",
+    "stream.biosignal.waveform",
+    "stream.motion.accelerometer",
+    "stream.device.status",
+    "stream.backend.health"
+  ],
+  "active_commands": [
+    "command.device.scan",
+    "command.device.connect",
+    "command.device.configure",
+    "command.stream.start",
+    "command.stream.stop",
+    "command.device.disconnect"
+  ],
+  "issues": []
+}

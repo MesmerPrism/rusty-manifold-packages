@@ -10,6 +10,28 @@
     "module.beat.coherence",
     "module.breath.dynamics"
   ],
+  "selected_backends": [
+    {
+      "module_id": "module.biosignal_sensor.provider",
+      "backend_id": "backend.synthetic"
+    },
+    {
+      "module_id": "module.breath.volume_from_motion",
+      "backend_id": "backend.synthetic"
+    },
+    {
+      "module_id": "module.beat.hrv_window",
+      "backend_id": "backend.synthetic"
+    },
+    {
+      "module_id": "module.beat.coherence",
+      "backend_id": "backend.synthetic"
+    },
+    {
+      "module_id": "module.breath.dynamics",
+      "backend_id": "backend.synthetic"
+    }
+  ],
   "endpoint_id": "endpoint.control_loopback",
   "security_policy": "policy.local_process_only",
   "artifact_policy": "policy.no_artifacts",

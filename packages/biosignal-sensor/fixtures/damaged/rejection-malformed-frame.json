@@ -1,0 +1,8 @@
+{
+  "$schema": "rusty.manifold.command.rejection.v1",
+  "request_id": "request.biosignal.malformed_frame",
+  "rejection_code": "rejection.malformed_frame",
+  "message": "A sampled frame did not match the advertised sample schema.",
+  "retryable": true,
+  "current_revision": 1
+}

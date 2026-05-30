@@ -1,0 +1,8 @@
+{
+  "$schema": "rusty.manifold.command.rejection.v1",
+  "request_id": "request.biosignal.permission_missing",
+  "rejection_code": "rejection.permission_missing",
+  "message": "Required source permission is not available.",
+  "retryable": false,
+  "current_revision": 1
+}

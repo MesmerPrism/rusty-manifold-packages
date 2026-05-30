@@ -1,0 +1,15 @@
+{
+  "$schema": "rusty.manifold.module.runtime_state.v1",
+  "module_id": "module.beat.coherence",
+  "runtime_revision": 1,
+  "lifecycle": "running",
+  "health": "healthy",
+  "selected_backend": "backend.synthetic",
+  "active_streams": [
+    "stream.beat.coherence"
+  ],
+  "active_commands": [
+    "command.processor.reset"
+  ],
+  "issues": []
+}

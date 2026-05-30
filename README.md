@@ -14,6 +14,7 @@ device APIs, or transport stacks.
 
 ```powershell
 python tools\check_packages.py --repo-root .
+python -m py_compile tools\check_packages.py tools\package_testkit.py
 ```
 
 The validator checks package exports, module stream/command links, graph links,

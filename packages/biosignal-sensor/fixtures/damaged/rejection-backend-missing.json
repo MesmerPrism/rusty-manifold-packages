@@ -1,0 +1,8 @@
+{
+  "$schema": "rusty.manifold.command.rejection.v1",
+  "request_id": "request.biosignal.backend_missing",
+  "rejection_code": "rejection.backend_missing",
+  "message": "No compatible backend is available for the selected host.",
+  "retryable": false,
+  "current_revision": 1
+}

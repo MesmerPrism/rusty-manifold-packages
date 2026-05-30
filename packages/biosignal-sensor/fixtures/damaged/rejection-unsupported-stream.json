@@ -1,0 +1,8 @@
+{
+  "$schema": "rusty.manifold.command.rejection.v1",
+  "request_id": "request.biosignal.unsupported_stream",
+  "rejection_code": "rejection.unsupported_stream",
+  "message": "The selected backend does not provide the requested stream.",
+  "retryable": false,
+  "current_revision": 1
+}
