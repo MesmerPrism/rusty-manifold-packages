@@ -46,6 +46,12 @@
       "status": "pass",
       "evidence": "Sanitized live completion evidence preserves single-owner raw PMD acquisition, headset reacquire, desktop-owned ACC sample-rate success, control-session failure classification, and HR/RR observer-only behavior.",
       "issue_codes": []
+    },
+    {
+      "check_id": "validation.check.polar_coherence_golden",
+      "status": "pass",
+      "evidence": "Coherence golden fixtures recompute the spectral paper ratio separately from the normalized operator score.",
+      "issue_codes": []
     }
   ],
   "issues": []

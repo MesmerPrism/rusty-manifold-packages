@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -65,6 +66,7 @@ class PackageBundle:
     ownership_modes: list[dict[str, Any]]
     pmd_handoffs: list[dict[str, Any]]
     completion_evidence: list[dict[str, Any]]
+    processing_goldens: list[dict[str, Any]]
     provenance_docs: list[dict[str, Any]]
     rejections: list[dict[str, Any]]
 
@@ -113,6 +115,9 @@ def load_packages(repo_root: Path, checks: list[Check]) -> list[PackageBundle]:
                     ),
                     completion_evidence=read_json_dir(
                         package_root / "fixtures/valid", glob_pattern="completion-*.json"
+                    ),
+                    processing_goldens=read_json_dir(
+                        package_root / "fixtures/valid", glob_pattern="processor-*.json"
                     ),
                     provenance_docs=read_json_dir(
                         package_root / "manifests", glob_pattern="provenance*.json"
@@ -210,6 +215,7 @@ def add_package_checks(package: PackageBundle, checks: list[Check]) -> None:
     validate_rejection_fixtures(prefix, package, checks)
     validate_scorecards(prefix, package, checks)
     validate_provenance(prefix, package, checks)
+    validate_processor_goldens(prefix, package, checks)
     validate_polar_readiness(prefix, package, modules_by_id, checks)
     validate_polar_completion_evidence(prefix, package, checks)
 
@@ -590,6 +596,297 @@ def validate_provenance(prefix: str, package: PackageBundle, checks: list[Check]
         "Polar source ids, module bindings, notices, and stale DOI rejection are explicit",
         f"provenance issues: {errors}",
     )
+
+
+def validate_processor_goldens(prefix: str, package: PackageBundle, checks: list[Check]) -> None:
+    package_id = str(package.manifest.get("package_id"))
+    if package_id != "package.polar_h10":
+        return
+
+    errors: list[str] = []
+    golden = find_one(
+        package.processing_goldens,
+        "golden_id",
+        "golden.polar_h10.coherence.spectral_ratio",
+    )
+    if golden is None:
+        errors.append("golden.polar_h10.coherence.spectral_ratio")
+    else:
+        errors += validate_coherence_golden(package, golden)
+
+    append_check(
+        checks,
+        f"{prefix}.processor_goldens",
+        not errors,
+        "Polar processor golden fixtures recompute expected spectral outputs",
+        f"processor golden issues: {errors}",
+    )
+
+
+def validate_coherence_golden(
+    package: PackageBundle, golden: dict[str, Any]
+) -> list[str]:
+    errors: list[str] = []
+    module_ids = {module["module_id"] for module in package.modules}
+    stream_ids = {stream["stream_id"] for stream in package.streams}
+
+    required_fields = {
+        "package_id": "package.polar_h10",
+        "module_id": "module.polar_h10.coherence",
+        "input_stream_id": "stream.polar_h10.hr_rr",
+        "output_stream_id": "stream.polar_h10.coherence",
+        "source_id": "source.method.coherence_ratio",
+    }
+    for key, expected in required_fields.items():
+        if golden.get(key) != expected:
+            errors.append(f"{key}:{golden.get(key)}")
+
+    if golden.get("module_id") not in module_ids:
+        errors.append("module_id")
+    for key in ("input_stream_id", "output_stream_id"):
+        if golden.get(key) not in stream_ids:
+            errors.append(key)
+
+    settings = golden.get("settings", {})
+    if not isinstance(settings, dict):
+        return errors + ["settings"]
+
+    expected_settings = {
+        "rr_interval_units": "ms",
+        "detrend": "mean",
+        "analysis_window": "rectangular",
+        "power_normalization": "magnitude_squared_over_n_squared",
+        "paper_ratio_formula": "peak_band_power / (total_band_power - peak_band_power)",
+        "normalized_score_formula": "paper_ratio / (paper_ratio + 1)",
+    }
+    for key, expected in expected_settings.items():
+        if settings.get(key) != expected:
+            errors.append(f"settings.{key}")
+
+    if numeric(settings.get("sample_rate_hz")) <= 0.0:
+        errors.append("settings.sample_rate_hz")
+    if not isinstance(settings.get("fft_length"), int) or settings.get("fft_length") <= 0:
+        errors.append("settings.fft_length")
+    if numeric(settings.get("window_seconds")) <= 0.0:
+        errors.append("settings.window_seconds")
+
+    cases = golden.get("cases", [])
+    if not isinstance(cases, list) or not cases:
+        errors.append("cases")
+    else:
+        for case in cases:
+            if not isinstance(case, dict):
+                errors.append("case")
+                continue
+            errors += validate_coherence_case(settings, case)
+
+    damaged_cases = golden.get("damaged_cases", [])
+    if not isinstance(damaged_cases, list) or not damaged_cases:
+        errors.append("damaged_cases")
+    else:
+        errors += validate_coherence_damaged_cases(settings, damaged_cases)
+
+    return errors
+
+
+def validate_coherence_case(settings: dict[str, Any], case: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    case_id = str(case.get("case_id", ""))
+    if not ID_RE.match(case_id):
+        errors.append(f"{case_id}:case_id")
+
+    expected = case.get("expected", {})
+    if not isinstance(expected, dict):
+        return errors + [f"{case_id}:expected"]
+    tolerance = numeric(case.get("tolerance", {}).get("absolute"))
+    if tolerance <= 0.0:
+        errors.append(f"{case_id}:tolerance")
+        tolerance = 0.000001
+
+    try:
+        actual = compute_coherence_case(settings, case.get("input", {}))
+    except ValueError as error:
+        return errors + [f"{case_id}:{error}"]
+
+    for key in (
+        "peak_frequency_hz",
+        "peak_band_power",
+        "total_band_power",
+        "paper_ratio",
+        "normalized_score",
+    ):
+        if key not in expected:
+            errors.append(f"{case_id}:{key}:missing")
+            continue
+        if not within_tolerance(actual[key], numeric(expected.get(key)), tolerance):
+            errors.append(f"{case_id}:{key}")
+
+    if actual["quality"] != expected.get("quality"):
+        errors.append(f"{case_id}:quality")
+
+    return errors
+
+
+def validate_coherence_damaged_cases(
+    settings: dict[str, Any], damaged_cases: list[Any]
+) -> list[str]:
+    errors: list[str] = []
+    fft_length = settings.get("fft_length")
+    if not isinstance(fft_length, int):
+        return ["damaged_cases:fft_length"]
+
+    for damaged_case in damaged_cases:
+        if not isinstance(damaged_case, dict):
+            errors.append("damaged_case")
+            continue
+        case_id = str(damaged_case.get("case_id", ""))
+        if not ID_RE.match(case_id):
+            errors.append(f"{case_id}:case_id")
+        issue_code = str(damaged_case.get("expected_issue_code", ""))
+        if not ID_RE.match(issue_code):
+            errors.append(f"{case_id}:expected_issue_code")
+        if issue_code == "issue.window_underfilled":
+            sample_count = damaged_case.get("input", {}).get("sample_count")
+            if not isinstance(sample_count, int) or sample_count >= fft_length:
+                errors.append(f"{case_id}:sample_count")
+    return errors
+
+
+def compute_coherence_case(
+    settings: dict[str, Any], case_input: Any
+) -> dict[str, float | str]:
+    if not isinstance(case_input, dict):
+        raise ValueError("input")
+    fft_length = settings.get("fft_length")
+    if not isinstance(fft_length, int) or fft_length <= 0:
+        raise ValueError("fft_length")
+    sample_rate_hz = numeric(settings.get("sample_rate_hz"))
+    if sample_rate_hz <= 0.0:
+        raise ValueError("sample_rate_hz")
+    if settings.get("detrend") != "mean":
+        raise ValueError("detrend")
+    if settings.get("analysis_window") != "rectangular":
+        raise ValueError("analysis_window")
+
+    total_band = frequency_band(settings.get("total_band_hz"), "total_band_hz")
+    peak_search = frequency_band(settings.get("peak_search_hz"), "peak_search_hz")
+    peak_half_width = numeric(settings.get("peak_window_half_width_hz"))
+    if peak_half_width <= 0.0:
+        raise ValueError("peak_window_half_width_hz")
+
+    samples = synthesize_rr_window(fft_length, case_input)
+    mean = sum(samples) / float(fft_length)
+    detrended = [sample - mean for sample in samples]
+    powers = dft_power_by_bin(detrended, sample_rate_hz)
+
+    total_band_power = sum(
+        power for _, frequency, power in powers if in_band(frequency, total_band)
+    )
+    peak_candidates = [
+        (bin_index, frequency, power)
+        for bin_index, frequency, power in powers
+        if in_band(frequency, peak_search)
+    ]
+    if not peak_candidates:
+        raise ValueError("peak_search_hz")
+    max_peak_power = max(power for _, _, power in peak_candidates)
+    peak_bin, peak_frequency_hz, _ = min(
+        (
+            (bin_index, frequency, power)
+            for bin_index, frequency, power in peak_candidates
+            if abs(power - max_peak_power) <= 0.000000000001
+        ),
+        key=lambda item: item[0],
+    )
+    if peak_bin <= 0:
+        raise ValueError("peak_bin")
+
+    peak_band_power = sum(
+        power
+        for _, frequency, power in powers
+        if in_band(frequency, total_band)
+        and abs(frequency - peak_frequency_hz) <= peak_half_width + 0.000000000001
+    )
+    remaining_power = total_band_power - peak_band_power
+    if remaining_power <= 0.0:
+        paper_ratio = math.inf
+        normalized_score = 1.0
+    else:
+        paper_ratio = peak_band_power / remaining_power
+        normalized_score = paper_ratio / (paper_ratio + 1.0)
+
+    return {
+        "peak_frequency_hz": peak_frequency_hz,
+        "peak_band_power": peak_band_power,
+        "total_band_power": total_band_power,
+        "paper_ratio": paper_ratio,
+        "normalized_score": normalized_score,
+        "quality": "stable" if paper_ratio >= 2.0 else "distributed",
+    }
+
+
+def synthesize_rr_window(fft_length: int, case_input: dict[str, Any]) -> list[float]:
+    base_rr_ms = numeric(case_input.get("base_rr_ms"))
+    components = case_input.get("components", [])
+    if not isinstance(components, list) or not components:
+        raise ValueError("components")
+
+    samples: list[float] = []
+    for sample_index in range(fft_length):
+        sample = base_rr_ms
+        for component in components:
+            if not isinstance(component, dict):
+                raise ValueError("component")
+            bin_index = component.get("bin")
+            if not isinstance(bin_index, int) or bin_index <= 0 or bin_index > fft_length // 2:
+                raise ValueError("component.bin")
+            amplitude_ms = numeric(component.get("amplitude_ms"))
+            phase_rad = numeric(component.get("phase_rad"))
+            sample += amplitude_ms * math.sin(
+                (2.0 * math.pi * float(bin_index) * float(sample_index) / float(fft_length))
+                + phase_rad
+            )
+        samples.append(sample)
+    return samples
+
+
+def dft_power_by_bin(samples: list[float], sample_rate_hz: float) -> list[tuple[int, float, float]]:
+    fft_length = len(samples)
+    powers: list[tuple[int, float, float]] = []
+    for bin_index in range(1, (fft_length // 2) + 1):
+        real = 0.0
+        imaginary = 0.0
+        for sample_index, sample in enumerate(samples):
+            angle = -2.0 * math.pi * float(bin_index) * float(sample_index) / float(fft_length)
+            real += sample * math.cos(angle)
+            imaginary += sample * math.sin(angle)
+        frequency = float(bin_index) * sample_rate_hz / float(fft_length)
+        power = ((real * real) + (imaginary * imaginary)) / float(fft_length * fft_length)
+        powers.append((bin_index, frequency, power))
+    return powers
+
+
+def frequency_band(value: Any, field_name: str) -> tuple[float, float]:
+    if (
+        not isinstance(value, list)
+        or len(value) != 2
+        or numeric(value[0]) < 0.0
+        or numeric(value[1]) <= numeric(value[0])
+    ):
+        raise ValueError(field_name)
+    return (numeric(value[0]), numeric(value[1]))
+
+
+def in_band(frequency: float, band: tuple[float, float]) -> bool:
+    return band[0] <= frequency <= band[1]
+
+
+def within_tolerance(actual: float | str, expected: float, tolerance: float) -> bool:
+    if not isinstance(actual, int | float):
+        return False
+    if not math.isfinite(float(actual)) or not math.isfinite(expected):
+        return float(actual) == expected
+    return abs(float(actual) - expected) <= tolerance
 
 
 def validate_polar_readiness(

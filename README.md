@@ -24,4 +24,4 @@ python tools\check_device_readiness.py --repo-root . --host-profile headset
 
 The validator checks package exports, module stream/command links, graph links,
 deployment selections, completion evidence, dotted ids, public-boundary terms,
-and host-profile readiness bundles.
+processor golden fixtures, and host-profile readiness bundles.

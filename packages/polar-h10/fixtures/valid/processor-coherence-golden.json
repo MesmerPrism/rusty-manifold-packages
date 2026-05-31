@@ -1,0 +1,114 @@
+{
+  "$schema": "rusty.manifold.processor.coherence_golden.v1",
+  "golden_id": "golden.polar_h10.coherence.spectral_ratio",
+  "package_id": "package.polar_h10",
+  "module_id": "module.polar_h10.coherence",
+  "input_stream_id": "stream.polar_h10.hr_rr",
+  "output_stream_id": "stream.polar_h10.coherence",
+  "source_id": "source.method.coherence_ratio",
+  "settings": {
+    "rr_interval_units": "ms",
+    "sample_rate_hz": 2.0,
+    "fft_length": 128,
+    "window_seconds": 64.0,
+    "detrend": "mean",
+    "analysis_window": "rectangular",
+    "total_band_hz": [
+      0.0033,
+      0.4
+    ],
+    "peak_search_hz": [
+      0.04,
+      0.26
+    ],
+    "peak_window_half_width_hz": 0.03,
+    "power_normalization": "magnitude_squared_over_n_squared",
+    "paper_ratio_formula": "peak_band_power / (total_band_power - peak_band_power)",
+    "normalized_score_formula": "paper_ratio / (paper_ratio + 1)"
+  },
+  "cases": [
+    {
+      "case_id": "case.polar_h10.coherence.resonant_peak",
+      "input": {
+        "base_rr_ms": 1000.0,
+        "components": [
+          {
+            "bin": 6,
+            "amplitude_ms": 50.0,
+            "phase_rad": 0.0
+          },
+          {
+            "bin": 18,
+            "amplitude_ms": 10.0,
+            "phase_rad": 0.0
+          },
+          {
+            "bin": 22,
+            "amplitude_ms": 5.0,
+            "phase_rad": 0.0
+          }
+        ]
+      },
+      "expected": {
+        "peak_frequency_hz": 0.09375,
+        "peak_band_power": 625.0,
+        "total_band_power": 656.25,
+        "paper_ratio": 20.0,
+        "normalized_score": 0.952380952381,
+        "quality": "stable"
+      },
+      "tolerance": {
+        "absolute": 0.000001
+      }
+    },
+    {
+      "case_id": "case.polar_h10.coherence.distributed_power",
+      "input": {
+        "base_rr_ms": 1000.0,
+        "components": [
+          {
+            "bin": 5,
+            "amplitude_ms": 30.0,
+            "phase_rad": 0.0
+          },
+          {
+            "bin": 10,
+            "amplitude_ms": 20.0,
+            "phase_rad": 0.0
+          },
+          {
+            "bin": 15,
+            "amplitude_ms": 20.0,
+            "phase_rad": 0.0
+          },
+          {
+            "bin": 20,
+            "amplitude_ms": 20.0,
+            "phase_rad": 0.0
+          }
+        ]
+      },
+      "expected": {
+        "peak_frequency_hz": 0.078125,
+        "peak_band_power": 225.0,
+        "total_band_power": 525.0,
+        "paper_ratio": 0.75,
+        "normalized_score": 0.428571428571,
+        "quality": "distributed"
+      },
+      "tolerance": {
+        "absolute": 0.000001
+      }
+    }
+  ],
+  "damaged_cases": [
+    {
+      "case_id": "case.polar_h10.coherence.underfilled_window",
+      "input": {
+        "sample_count": 96
+      },
+      "expected_issue_code": "issue.window_underfilled",
+      "reason": "The fixture requires a full 128-sample analysis window."
+    }
+  ]
+}
