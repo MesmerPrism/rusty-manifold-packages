@@ -64,6 +64,7 @@ class PackageBundle:
     scorecards: list[dict[str, Any]]
     ownership_modes: list[dict[str, Any]]
     pmd_handoffs: list[dict[str, Any]]
+    completion_evidence: list[dict[str, Any]]
     rejections: list[dict[str, Any]]
 
 
@@ -108,6 +109,9 @@ def load_packages(repo_root: Path, checks: list[Check]) -> list[PackageBundle]:
                     ),
                     pmd_handoffs=read_json_dir(
                         package_root / "fixtures/valid", glob_pattern="handoff-*.json"
+                    ),
+                    completion_evidence=read_json_dir(
+                        package_root / "fixtures/valid", glob_pattern="completion-*.json"
                     ),
                     rejections=read_json_dir(
                         package_root / "fixtures/damaged", glob_pattern="rejection-*.json"
@@ -202,6 +206,7 @@ def add_package_checks(package: PackageBundle, checks: list[Check]) -> None:
     validate_rejection_fixtures(prefix, package, checks)
     validate_scorecards(prefix, package, checks)
     validate_polar_readiness(prefix, package, modules_by_id, checks)
+    validate_polar_completion_evidence(prefix, package, checks)
 
 
 def collect_ids(package: PackageBundle) -> dict[str, set[str]]:
@@ -457,6 +462,12 @@ def validate_rejection_fixtures(
             "rejection.handoff_connect_timeout",
             "rejection.handoff_first_frame_timeout",
             "rejection.settings_mismatch",
+            "rejection.previous_owner_not_stopped",
+            "rejection.stop_command_failed",
+            "rejection.service_discovery_failed",
+            "rejection.service_cache_failed",
+            "rejection.control_write_failed",
+            "rejection.sample_rate_below_tolerance",
         },
     }
     required = required_by_package.get(str(package.manifest.get("package_id")))
@@ -669,6 +680,201 @@ def validate_polar_readiness(
         "Polar raw PMD host handoff workflows are explicit and evidence-scoped",
         f"PMD handoff fixture issues: {handoff_errors}",
     )
+
+
+def validate_polar_completion_evidence(
+    prefix: str, package: PackageBundle, checks: list[Check]
+) -> None:
+    if package.manifest.get("package_id") != "package.polar_h10":
+        return
+
+    completion = find_one(
+        package.completion_evidence,
+        "completion_id",
+        "completion.polar_h10.pmd_on_device",
+    )
+    errors: list[str] = []
+    if completion is None:
+        errors.append("completion.polar_h10.pmd_on_device")
+    else:
+        if completion.get("completion_status") != "complete":
+            errors.append("completion_status")
+        if completion.get("status") != "pass":
+            errors.append("status")
+
+        summary = completion.get("evidence_summary", {})
+        required_summary_flags = {
+            "raw_pmd_single_owner",
+            "hr_rr_dual_receiver_is_observer_only",
+            "desktop_control_failures_are_not_sample_rate_failures",
+            "separates_notification_cadence_from_sensor_sample_rate",
+        }
+        errors += sorted(flag for flag in required_summary_flags if summary.get(flag) is not True)
+
+        required_fields = set(completion.get("required_evidence_fields", []))
+        expected_fields = {
+            "handoff_sequence_id",
+            "leg_order",
+            "previous_owner_backend",
+            "next_owner_backend",
+            "stream_id",
+            "requested_settings_fingerprint",
+            "applied_settings_fingerprint",
+            "owner_release_at",
+            "advertisement_seen_at",
+            "connect_started_at",
+            "services_discovered_at",
+            "settings_read_at",
+            "pmd_start_ack_at",
+            "first_pmd_frame_at",
+            "notification_cadence_hz",
+            "sensor_sample_rate_hz",
+            "frame_sample_count",
+            "decoded_sample_count",
+            "payload_size_bytes",
+            "max_pdu_size",
+            "connection_mode",
+            "connection_priority",
+            "hr_subscription_state",
+            "backend_id",
+            "control_write_status",
+            "service_cache_status",
+            "stop_command_status",
+            "rejection_code",
+        }
+        errors += [f"required_field:{field}" for field in sorted(expected_fields - required_fields)]
+
+        legs = {leg.get("leg_id"): leg for leg in completion.get("legs", [])}
+        required_leg_ids = {
+            "leg.polar_h10.headset_acc_200_initial",
+            "leg.polar_h10.headset_ecg_initial",
+            "leg.polar_h10.desktop_acc_200_success",
+            "leg.polar_h10.desktop_control_session_fragility",
+            "leg.polar_h10.hr_rr_dual_observer",
+            "leg.polar_h10.headset_acc_200_reacquire",
+            "leg.polar_h10.headset_ecg_reacquire",
+        }
+        errors += [f"leg:{leg_id}" for leg_id in sorted(required_leg_ids - set(legs))]
+
+        require_rate_leg(
+            legs,
+            errors,
+            "leg.polar_h10.headset_acc_200_initial",
+            stream_id="stream.polar_h10.acc",
+            backend_id="backend.headset_wireless",
+            min_rate_hz=190.0,
+            min_samples=3000,
+        )
+        require_rate_leg(
+            legs,
+            errors,
+            "leg.polar_h10.headset_acc_200_reacquire",
+            stream_id="stream.polar_h10.acc",
+            backend_id="backend.headset_wireless",
+            min_rate_hz=190.0,
+            min_samples=3000,
+        )
+        require_rate_leg(
+            legs,
+            errors,
+            "leg.polar_h10.headset_ecg_initial",
+            stream_id="stream.polar_h10.ecg",
+            backend_id="backend.headset_wireless",
+            min_rate_hz=120.0,
+            min_samples=1500,
+        )
+        require_rate_leg(
+            legs,
+            errors,
+            "leg.polar_h10.headset_ecg_reacquire",
+            stream_id="stream.polar_h10.ecg",
+            backend_id="backend.headset_wireless",
+            min_rate_hz=120.0,
+            min_samples=1500,
+        )
+
+        desktop_success = legs.get("leg.polar_h10.desktop_acc_200_success", {})
+        if desktop_success:
+            require_rate_leg(
+                legs,
+                errors,
+                "leg.polar_h10.desktop_acc_200_success",
+                stream_id="stream.polar_h10.acc",
+                backend_id="backend.desktop_wireless",
+                min_rate_hz=180.0,
+                min_samples=3000,
+            )
+            observer = desktop_success.get("observer", {})
+            if observer.get("backend_id") != "backend.headset_wireless":
+                errors.append("desktop_success:observer_backend")
+            if numeric(observer.get("sensor_sample_rate_hz")) < 190.0:
+                errors.append("desktop_success:observer_sample_rate")
+            if numeric(observer.get("decoded_sample_count")) < 3000.0:
+                errors.append("desktop_success:observer_samples")
+            if numeric(desktop_success.get("mean_source_to_forward_ms")) > 5.0:
+                errors.append("desktop_success:source_to_forward_delay")
+
+        control_fragility = legs.get("leg.polar_h10.desktop_control_session_fragility", {})
+        if control_fragility:
+            if control_fragility.get("outcome") != "control_session_failure":
+                errors.append("control_fragility:outcome")
+            if control_fragility.get("data_rate_verdict") != "not_evaluated":
+                errors.append("control_fragility:data_rate_verdict")
+
+        hr_rr = legs.get("leg.polar_h10.hr_rr_dual_observer", {})
+        if hr_rr:
+            if hr_rr.get("raw_pmd_enabled") is not False:
+                errors.append("hr_rr_dual:raw_pmd_enabled")
+            if hr_rr.get("outcome") != "observer_only":
+                errors.append("hr_rr_dual:outcome")
+
+    append_check(
+        checks,
+        f"{prefix}.polar_completion_evidence",
+        not errors,
+        "Polar on-device completion evidence covers PMD handoff, reacquire, and observer-only HR/RR cases",
+        f"completion evidence issues: {errors}",
+    )
+
+
+def find_one(items: list[dict[str, Any]], key: str, value: str) -> dict[str, Any] | None:
+    for item in items:
+        if item.get(key) == value:
+            return item
+    return None
+
+
+def require_rate_leg(
+    legs: dict[Any, dict[str, Any]],
+    errors: list[str],
+    leg_id: str,
+    *,
+    stream_id: str,
+    backend_id: str,
+    min_rate_hz: float,
+    min_samples: int,
+) -> None:
+    leg = legs.get(leg_id)
+    if not leg:
+        return
+    if leg.get("outcome") != "pass":
+        errors.append(f"{leg_id}:outcome")
+    if leg.get("stream_id") != stream_id:
+        errors.append(f"{leg_id}:stream_id")
+    if leg.get("backend_id") != backend_id:
+        errors.append(f"{leg_id}:backend_id")
+    if numeric(leg.get("sensor_sample_rate_hz")) < min_rate_hz:
+        errors.append(f"{leg_id}:sensor_sample_rate_hz")
+    if numeric(leg.get("decoded_sample_count")) < float(min_samples):
+        errors.append(f"{leg_id}:decoded_sample_count")
+    if numeric(leg.get("frame_sample_count")) <= 0.0:
+        errors.append(f"{leg_id}:frame_sample_count")
+
+
+def numeric(value: Any) -> float:
+    if isinstance(value, int | float):
+        return float(value)
+    return 0.0
 
 
 def append_check(

@@ -39,7 +39,13 @@
         "rejection.handoff_advertisement_timeout",
         "rejection.handoff_connect_timeout",
         "rejection.handoff_first_frame_timeout",
-        "rejection.settings_mismatch"
+        "rejection.settings_mismatch",
+        "rejection.previous_owner_not_stopped",
+        "rejection.stop_command_failed",
+        "rejection.service_discovery_failed",
+        "rejection.service_cache_failed",
+        "rejection.control_write_failed",
+        "rejection.sample_rate_below_tolerance"
       ]
     },
     {
@@ -78,7 +84,13 @@
         "rejection.handoff_advertisement_timeout",
         "rejection.handoff_connect_timeout",
         "rejection.handoff_first_frame_timeout",
-        "rejection.settings_mismatch"
+        "rejection.settings_mismatch",
+        "rejection.previous_owner_not_stopped",
+        "rejection.stop_command_failed",
+        "rejection.service_discovery_failed",
+        "rejection.service_cache_failed",
+        "rejection.control_write_failed",
+        "rejection.sample_rate_below_tolerance"
       ]
     },
     {
@@ -117,7 +129,13 @@
         "rejection.handoff_advertisement_timeout",
         "rejection.handoff_connect_timeout",
         "rejection.handoff_first_frame_timeout",
-        "rejection.settings_mismatch"
+        "rejection.settings_mismatch",
+        "rejection.previous_owner_not_stopped",
+        "rejection.stop_command_failed",
+        "rejection.service_discovery_failed",
+        "rejection.service_cache_failed",
+        "rejection.control_write_failed",
+        "rejection.sample_rate_below_tolerance"
       ]
     },
     {
@@ -156,7 +174,13 @@
         "rejection.handoff_advertisement_timeout",
         "rejection.handoff_connect_timeout",
         "rejection.handoff_first_frame_timeout",
-        "rejection.settings_mismatch"
+        "rejection.settings_mismatch",
+        "rejection.previous_owner_not_stopped",
+        "rejection.stop_command_failed",
+        "rejection.service_discovery_failed",
+        "rejection.service_cache_failed",
+        "rejection.control_write_failed",
+        "rejection.sample_rate_below_tolerance"
       ]
     }
   ]

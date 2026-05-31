@@ -1,0 +1,8 @@
+{
+  "$schema": "rusty.manifold.command.rejection.v1",
+  "request_id": "request.polar_h10.service_cache_failed",
+  "rejection_code": "rejection.service_cache_failed",
+  "message": "Cached source service metadata did not refresh before the handoff deadline.",
+  "retryable": true,
+  "current_revision": 1
+}

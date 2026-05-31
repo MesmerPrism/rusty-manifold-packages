@@ -162,6 +162,19 @@ def build_readiness_bundle(
             "synthetic deployment is missing",
         )
     )
+    completion = find_by_id(
+        package.completion_evidence,
+        "completion_id",
+        "completion.polar_h10.pmd_on_device",
+    )
+    checks.append(
+        pass_or_fail(
+            "readiness.completion_evidence",
+            completion is not None and completion.get("completion_status") == "complete",
+            "on-device completion evidence is present",
+            "on-device completion evidence is missing or incomplete",
+        )
+    )
 
     bundle_dir = output_root / host_profile
     if bundle_dir.exists():
@@ -176,6 +189,8 @@ def build_readiness_bundle(
         write_json(bundle_dir / "ownership-modes.manifold.json", package.ownership_modes[0])
     if package.pmd_handoffs:
         write_json(bundle_dir / "handoff-workflows.manifold.json", package.pmd_handoffs[0])
+    if completion is not None:
+        write_json(bundle_dir / "completion-evidence.manifold.json", completion)
     write_device_script(bundle_dir / "device-smoke.sh")
     write_report(bundle_dir / "readiness-report.json", checks)
     return checks, bundle_dir
@@ -273,9 +288,11 @@ def write_device_script(path: Path) -> None:
             '[ -s "$root/graph.manifold.json" ] || { echo "missing graph.manifold.json"; exit 2; }',
             '[ -s "$root/ownership-modes.manifold.json" ] || { echo "missing ownership-modes.manifold.json"; exit 2; }',
             '[ -s "$root/handoff-workflows.manifold.json" ] || { echo "missing handoff-workflows.manifold.json"; exit 2; }',
+            '[ -s "$root/completion-evidence.manifold.json" ] || { echo "missing completion-evidence.manifold.json"; exit 2; }',
             "grep -q '\"status\": \"pass\"' \"$root/readiness-report.json\" || { echo \"readiness report did not pass\"; exit 3; }",
             "grep -q '\"package_id\": \"package.polar_h10\"' \"$root/package.manifold.json\" || { echo \"package id mismatch\"; exit 3; }",
             "grep -q '\"owner_policy\": \"serial_handoff\"' \"$root/handoff-workflows.manifold.json\" || { echo \"handoff policy mismatch\"; exit 3; }",
+            "grep -q '\"completion_status\": \"complete\"' \"$root/completion-evidence.manifold.json\" || { echo \"completion evidence mismatch\"; exit 3; }",
             'bytes="$(wc -c < "$root/readiness-report.json" | tr -d " ")"',
             'printf \'{"status":"pass","readinessReportBytes":%s}\\n\' "$bytes"',
             "",

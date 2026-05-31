@@ -1,0 +1,8 @@
+{
+  "$schema": "rusty.manifold.command.rejection.v1",
+  "request_id": "request.polar_h10.sample_rate_below_tolerance",
+  "rejection_code": "rejection.sample_rate_below_tolerance",
+  "message": "Decoded source samples were received but the observed sample rate was below tolerance.",
+  "retryable": true,
+  "current_revision": 1
+}

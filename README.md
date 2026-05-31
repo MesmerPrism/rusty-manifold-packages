@@ -16,12 +16,12 @@ device APIs, or transport stacks.
 
 ```powershell
 python tools\check_packages.py --repo-root .
-python -m py_compile tools\check_packages.py tools\package_testkit.py
+python -m py_compile tools\check_packages.py tools\package_testkit.py tools\check_device_readiness.py
 python tools\check_device_readiness.py --repo-root . --host-profile desktop
 python tools\check_device_readiness.py --repo-root . --host-profile mobile
 python tools\check_device_readiness.py --repo-root . --host-profile headset
 ```
 
 The validator checks package exports, module stream/command links, graph links,
-deployment selections, dotted ids, public-boundary terms, and host-profile
-readiness bundles.
+deployment selections, completion evidence, dotted ids, public-boundary terms,
+and host-profile readiness bundles.

@@ -1,0 +1,8 @@
+{
+  "$schema": "rusty.manifold.command.rejection.v1",
+  "request_id": "request.polar_h10.stop_command_failed",
+  "rejection_code": "rejection.stop_command_failed",
+  "message": "The current owner did not acknowledge the raw stream stop command.",
+  "retryable": true,
+  "current_revision": 1
+}

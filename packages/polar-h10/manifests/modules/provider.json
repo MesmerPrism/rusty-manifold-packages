@@ -60,6 +60,12 @@
     "issue.handoff_advertisement_timeout",
     "issue.handoff_connect_timeout",
     "issue.handoff_first_frame_timeout",
-    "issue.settings_mismatch"
+    "issue.settings_mismatch",
+    "issue.previous_owner_not_stopped",
+    "issue.stop_command_failed",
+    "issue.service_discovery_failed",
+    "issue.service_cache_failed",
+    "issue.control_write_failed",
+    "issue.sample_rate_below_tolerance"
   ]
 }

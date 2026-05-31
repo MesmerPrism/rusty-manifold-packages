@@ -1,0 +1,8 @@
+{
+  "$schema": "rusty.manifold.command.rejection.v1",
+  "request_id": "request.polar_h10.control_write_failed",
+  "rejection_code": "rejection.control_write_failed",
+  "message": "The next owner could not write the raw stream control request.",
+  "retryable": true,
+  "current_revision": 1
+}

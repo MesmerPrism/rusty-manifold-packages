@@ -1,0 +1,8 @@
+{
+  "$schema": "rusty.manifold.command.rejection.v1",
+  "request_id": "request.polar_h10.service_discovery_failed",
+  "rejection_code": "rejection.service_discovery_failed",
+  "message": "The next owner connected but could not discover the required source services.",
+  "retryable": true,
+  "current_revision": 1
+}

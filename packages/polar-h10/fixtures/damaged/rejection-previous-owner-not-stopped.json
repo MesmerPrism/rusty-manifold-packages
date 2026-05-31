@@ -1,0 +1,8 @@
+{
+  "$schema": "rusty.manifold.command.rejection.v1",
+  "request_id": "request.polar_h10.previous_owner_not_stopped",
+  "rejection_code": "rejection.previous_owner_not_stopped",
+  "message": "A raw stream owner is still active, so the next owner cannot acquire the source.",
+  "retryable": true,
+  "current_revision": 1
+}
