@@ -65,6 +65,7 @@ class PackageBundle:
     ownership_modes: list[dict[str, Any]]
     pmd_handoffs: list[dict[str, Any]]
     completion_evidence: list[dict[str, Any]]
+    provenance_docs: list[dict[str, Any]]
     rejections: list[dict[str, Any]]
 
 
@@ -112,6 +113,9 @@ def load_packages(repo_root: Path, checks: list[Check]) -> list[PackageBundle]:
                     ),
                     completion_evidence=read_json_dir(
                         package_root / "fixtures/valid", glob_pattern="completion-*.json"
+                    ),
+                    provenance_docs=read_json_dir(
+                        package_root / "manifests", glob_pattern="provenance*.json"
                     ),
                     rejections=read_json_dir(
                         package_root / "fixtures/damaged", glob_pattern="rejection-*.json"
@@ -205,6 +209,7 @@ def add_package_checks(package: PackageBundle, checks: list[Check]) -> None:
     validate_provider_processor_split(prefix, package, modules_by_id, checks)
     validate_rejection_fixtures(prefix, package, checks)
     validate_scorecards(prefix, package, checks)
+    validate_provenance(prefix, package, checks)
     validate_polar_readiness(prefix, package, modules_by_id, checks)
     validate_polar_completion_evidence(prefix, package, checks)
 
@@ -504,6 +509,86 @@ def validate_scorecards(prefix: str, package: PackageBundle, checks: list[Check]
         not invalid,
         "scorecard fixtures are present and use dotted check ids",
         f"invalid scorecard rows: {invalid}",
+    )
+
+
+def validate_provenance(prefix: str, package: PackageBundle, checks: list[Check]) -> None:
+    package_id = str(package.manifest.get("package_id"))
+    if package_id != "package.polar_h10":
+        return
+
+    errors: list[str] = []
+    provenance_refs = set(package.manifest.get("provenance_refs", []))
+    notice_refs = set(package.manifest.get("notice_refs", []))
+    if "provenance.polar_h10.source_manifest" not in provenance_refs:
+        errors.append("manifest:provenance.polar_h10.source_manifest")
+    for notice_id in {
+        "notice.polar_h10.not_medical_device",
+        "notice.polar_h10.not_affiliated",
+    }:
+        if notice_id not in notice_refs:
+            errors.append(f"manifest:{notice_id}")
+
+    provenance = find_one(
+        package.provenance_docs,
+        "provenance_id",
+        "provenance.polar_h10.source_manifest",
+    )
+    if provenance is None:
+        errors.append("provenance.polar_h10.source_manifest")
+    else:
+        source_ids = {source.get("source_id") for source in provenance.get("sources", [])}
+        required_sources = {
+            "source.polar_h10.vendor_technical_docs",
+            "source.polar_h10.measurement_spec_snapshot",
+            "source.polar_h10.security_context",
+            "source.method.hrv_metrics",
+            "source.method.coherence_ratio",
+            "source.method.breathing_dynamics",
+            "source.method.acc_breath_proxy",
+        }
+        errors += [f"source:{source_id}" for source_id in sorted(required_sources - source_ids)]
+        for source in provenance.get("sources", []):
+            source_id = str(source.get("source_id", ""))
+            if not ID_RE.match(source_id):
+                errors.append(f"{source_id}:source_id")
+            if not source.get("claim_scope"):
+                errors.append(f"{source_id}:claim_scope")
+            if not source.get("copy_policy"):
+                errors.append(f"{source_id}:copy_policy")
+            doi = source.get("citation", {}).get("doi")
+            if doi == "10.3390/s25072005":
+                errors.append(f"{source_id}:stale_doi")
+
+        modules = {module["module_id"] for module in package.modules}
+        bindings = provenance.get("module_bindings", [])
+        bound_modules = {binding.get("module_id") for binding in bindings}
+        errors += [f"binding:{module_id}" for module_id in sorted(modules - bound_modules)]
+        for binding in bindings:
+            module_id = str(binding.get("module_id", ""))
+            if module_id not in modules:
+                errors.append(f"{module_id}:module_id")
+            if not set(binding.get("source_ids", [])).issubset(source_ids):
+                errors.append(f"{module_id}:source_ids")
+            if not binding.get("claim_boundary"):
+                errors.append(f"{module_id}:claim_boundary")
+
+        notice_ids = {notice.get("notice_id") for notice in provenance.get("notice_requirements", [])}
+        errors += [f"notice:{notice_id}" for notice_id in sorted(notice_refs - notice_ids)]
+        rejected_citations = {
+            item.get("citation_id") for item in provenance.get("rejected_citations", [])
+        }
+        if "citation.stale_security_paper" not in rejected_citations:
+            errors.append("rejected_citation:citation.stale_security_paper")
+        if package_contains_text(package.root, "10.3390/s25072005"):
+            errors.append("stale_doi_present")
+
+    append_check(
+        checks,
+        f"{prefix}.provenance",
+        not errors,
+        "Polar source ids, module bindings, notices, and stale DOI rejection are explicit",
+        f"provenance issues: {errors}",
     )
 
 
@@ -875,6 +960,15 @@ def numeric(value: Any) -> float:
     if isinstance(value, int | float):
         return float(value)
     return 0.0
+
+
+def package_contains_text(package_root: Path, needle: str) -> bool:
+    for path in sorted(package_root.rglob("*")):
+        if path.is_dir() or path.suffix.lower() not in {".json", ".md", ".txt"}:
+            continue
+        if needle in path.read_text(encoding="utf-8"):
+            return True
+    return False
 
 
 def append_check(

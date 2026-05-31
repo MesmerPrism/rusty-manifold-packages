@@ -1,0 +1,157 @@
+{
+  "$schema": "rusty.manifold.package.provenance.v1",
+  "provenance_id": "provenance.polar_h10.source_manifest",
+  "package_id": "package.polar_h10",
+  "sources": [
+    {
+      "source_id": "source.polar_h10.vendor_technical_docs",
+      "source_kind": "vendor_technical_documentation",
+      "citation": {
+        "label": "Polar vendor technical documentation, tag 4.0.0",
+        "doi": null,
+        "url": null
+      },
+      "claim_scope": [
+        "claim.provider.pmd_commands",
+        "claim.provider.pmd_frames",
+        "claim.provider.hr_rr_flags"
+      ],
+      "copy_policy": "no_verbatim_source_copy"
+    },
+    {
+      "source_id": "source.polar_h10.measurement_spec_snapshot",
+      "source_kind": "vendor_specification_snapshot",
+      "citation": {
+        "label": "Polar Measurement Data Specification for 3rd Party, 2021-02-23 snapshot",
+        "doi": null,
+        "url": null
+      },
+      "claim_scope": [
+        "claim.provider.pmd_commands",
+        "claim.provider.pmd_frames"
+      ],
+      "copy_policy": "no_verbatim_source_copy"
+    },
+    {
+      "source_id": "source.polar_h10.security_context",
+      "source_kind": "peer_reviewed_context",
+      "citation": {
+        "label": "The Newer, the More Secure? Standards-Compliant Bluetooth Low Energy Man-in-the-Middle Attacks on Fitness Trackers",
+        "doi": "10.3390/s25061815",
+        "url": null
+      },
+      "claim_scope": [
+        "claim.security.context_only"
+      ],
+      "copy_policy": "cite_without_protocol_normativity"
+    },
+    {
+      "source_id": "source.method.hrv_metrics",
+      "source_kind": "peer_reviewed_method",
+      "citation": {
+        "label": "An Overview of Heart Rate Variability Metrics and Norms",
+        "doi": "10.3389/fpubh.2017.00258",
+        "url": null
+      },
+      "claim_scope": [
+        "claim.processor.hrv_window"
+      ],
+      "copy_policy": "cite_and_rederive"
+    },
+    {
+      "source_id": "source.method.coherence_ratio",
+      "source_kind": "method_reference",
+      "citation": {
+        "label": "The Coherent Heart, Institute of HeartMath, 2006",
+        "doi": null,
+        "url": null
+      },
+      "claim_scope": [
+        "claim.processor.coherence"
+      ],
+      "copy_policy": "cite_and_rederive"
+    },
+    {
+      "source_id": "source.method.breathing_dynamics",
+      "source_kind": "peer_reviewed_method",
+      "citation": {
+        "label": "It's About Time: Breathing Dynamics Modulate Emotion and Cognition",
+        "doi": "10.1111/psyp.70149",
+        "url": null
+      },
+      "claim_scope": [
+        "claim.processor.breath_dynamics"
+      ],
+      "copy_policy": "cite_and_rederive_with_input_boundary"
+    },
+    {
+      "source_id": "source.method.acc_breath_proxy",
+      "source_kind": "package_defined_method",
+      "citation": {
+        "label": "Package-defined accelerometer breathing proxy",
+        "doi": null,
+        "url": null
+      },
+      "claim_scope": [
+        "claim.processor.breath_volume_proxy"
+      ],
+      "copy_policy": "document_as_package_specific_approximation"
+    }
+  ],
+  "module_bindings": [
+    {
+      "module_id": "module.polar_h10.provider",
+      "source_ids": [
+        "source.polar_h10.vendor_technical_docs",
+        "source.polar_h10.measurement_spec_snapshot",
+        "source.polar_h10.security_context"
+      ],
+      "claim_boundary": "Provider claims are limited to service identifiers, command shapes, decoded HR/RR, ECG, and ACC frame counters, ownership state, and failure reasons."
+    },
+    {
+      "module_id": "module.polar_h10.hrv_window",
+      "source_ids": [
+        "source.method.hrv_metrics"
+      ],
+      "claim_boundary": "HRV output is short-window telemetry for validation and operator feedback, not diagnosis."
+    },
+    {
+      "module_id": "module.polar_h10.coherence",
+      "source_ids": [
+        "source.method.coherence_ratio"
+      ],
+      "claim_boundary": "Coherence output must keep the cited spectral ratio separate from any normalized operator score."
+    },
+    {
+      "module_id": "module.polar_h10.breath_volume_from_acc",
+      "source_ids": [
+        "source.method.acc_breath_proxy"
+      ],
+      "claim_boundary": "ACC-derived breath volume is a package-specific approximation and not an externally validated respiration volume measure."
+    },
+    {
+      "module_id": "module.polar_h10.breath_dynamics",
+      "source_ids": [
+        "source.method.breathing_dynamics",
+        "source.method.acc_breath_proxy"
+      ],
+      "claim_boundary": "Breathing-dynamics features are rederived over the package breathing proxy and must not be described as the original belt-sensor pipeline."
+    }
+  ],
+  "notice_requirements": [
+    {
+      "notice_id": "notice.polar_h10.not_medical_device",
+      "text": "This package is for validation and research tooling, not medical diagnosis or treatment."
+    },
+    {
+      "notice_id": "notice.polar_h10.not_affiliated",
+      "text": "This package is not affiliated with or endorsed by Polar."
+    }
+  ],
+  "rejected_citations": [
+    {
+      "citation_id": "citation.stale_security_paper",
+      "reason": "Stale citation from an earlier source trail; not relevant to this package's protocol or processor claims."
+    }
+  ]
+}

@@ -39,6 +39,13 @@
       "command": "python tools/check_packages.py --repo-root ."
     }
   ],
+  "provenance_refs": [
+    "provenance.polar_h10.source_manifest"
+  ],
+  "notice_refs": [
+    "notice.polar_h10.not_medical_device",
+    "notice.polar_h10.not_affiliated"
+  ],
   "safety": {
     "uses_network": false,
     "uses_subprocess": false,
