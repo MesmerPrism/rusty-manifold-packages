@@ -1,0 +1,69 @@
+{
+  "$schema": "rusty.manifold.processor.rmssd_gain_golden.v1",
+  "golden_id": "golden.polar_h10.rmssd_gain.log_delta",
+  "package_id": "package.polar_h10",
+  "module_id": "module.polar_h10.rmssd_gain",
+  "input_stream_id": "stream.polar_h10.hrv_window",
+  "output_stream_id": "stream.polar_h10.rmssd_gain",
+  "source_id": "source.method.rmssd_gain",
+  "settings": {
+    "primary_formula": "ln_rmssd_live - baseline_ln_rmssd",
+    "ratio_formula": "exp(ln_rmssd_gain)",
+    "z_score_formula": "(ln_rmssd_live - baseline_mean_ln_rmssd) / baseline_sd_ln_rmssd",
+    "minimum_baseline_count": 3
+  },
+  "cases": [
+    {
+      "case_id": "case.polar_h10.rmssd_gain.basic_log_delta",
+      "input": {
+        "live": {
+          "ln_rmssd": 2.567899218525,
+          "quality": "stable"
+        },
+        "baseline": {
+          "baseline_ln_rmssd": 2.302585092994,
+          "baseline_mean_ln_rmssd": 2.4,
+          "baseline_sd_ln_rmssd": 0.2,
+          "baseline_window_count": 6
+        }
+      },
+      "expected": {
+        "ln_rmssd_gain": 0.265314125531,
+        "rmssd_ratio": 1.303840481041,
+        "baseline_z_score": 0.839496092626,
+        "quality": "stable"
+      },
+      "tolerance": {
+        "absolute": 0.000001
+      }
+    }
+  ],
+  "damaged_cases": [
+    {
+      "case_id": "case.polar_h10.rmssd_gain.baseline_missing",
+      "input": {
+        "live": {
+          "ln_rmssd": 2.5
+        }
+      },
+      "expected_issue_code": "issue.baseline_missing",
+      "reason": "Gain is not emitted until baseline_ln_rmssd exists."
+    },
+    {
+      "case_id": "case.polar_h10.rmssd_gain.baseline_sd_zero",
+      "input": {
+        "live": {
+          "ln_rmssd": 2.5
+        },
+        "baseline": {
+          "baseline_ln_rmssd": 2.2,
+          "baseline_mean_ln_rmssd": 2.2,
+          "baseline_sd_ln_rmssd": 0.0,
+          "baseline_window_count": 6
+        }
+      },
+      "expected_issue_code": "issue.baseline_invalid",
+      "reason": "A nonpositive baseline SD cannot produce a z-score."
+    }
+  ]
+}

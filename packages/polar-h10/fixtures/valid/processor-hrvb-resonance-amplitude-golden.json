@@ -1,0 +1,67 @@
+{
+  "$schema": "rusty.manifold.processor.hrvb_resonance_amplitude_golden.v1",
+  "golden_id": "golden.polar_h10.hrvb_resonance_amplitude.sine_fit",
+  "package_id": "package.polar_h10",
+  "module_id": "module.polar_h10.hrvb_resonance_amplitude",
+  "input_stream_id": "stream.polar_h10.hr_rr",
+  "output_stream_id": "stream.polar_h10.hrvb_resonance_amplitude",
+  "source_id": "source.method.hrvb_resonance_amplitude",
+  "settings": {
+    "input_signal": "instant_hr_bpm",
+    "window_seconds": 30.0,
+    "sample_rate_hz": 1.0,
+    "frequency_band_hz": [
+      0.08,
+      0.12
+    ],
+    "model": "mean_hr_bpm + amplitude_bpm * sin(omega_rad_s * t + phase_rad)",
+    "amplitude_definition": "half_peak_to_trough",
+    "session_summary": "median_window_amplitude_bpm",
+    "source_threshold_bpm": 2.0
+  },
+  "cases": [
+    {
+      "case_id": "case.polar_h10.hrvb_resonance_amplitude.basic_sine",
+      "input": {
+        "generator": {
+          "mean_hr_bpm": 62.0,
+          "amplitude_bpm": 3.5,
+          "frequency_hz": 0.1,
+          "phase_rad": 0.4,
+          "sample_count": 30
+        }
+      },
+      "expected": {
+        "amplitude_bpm": 3.5,
+        "mean_hr_bpm": 62.0,
+        "frequency_hz": 0.1,
+        "omega_rad_s": 0.628318530718,
+        "phase_rad": 0.4,
+        "median_session_amplitude_bpm": 3.5,
+        "threshold_status": "above_source_threshold",
+        "quality": "stable"
+      },
+      "tolerance": {
+        "absolute": 0.000001
+      }
+    }
+  ],
+  "damaged_cases": [
+    {
+      "case_id": "case.polar_h10.hrvb_resonance_amplitude.underfilled",
+      "input": {
+        "sample_count": 18
+      },
+      "expected_issue_code": "issue.window_underfilled",
+      "reason": "The fixture requires a full 30-second analysis span."
+    },
+    {
+      "case_id": "case.polar_h10.hrvb_resonance_amplitude.out_of_band",
+      "input": {
+        "frequency_hz": 0.2
+      },
+      "expected_issue_code": "issue.frequency_out_of_band",
+      "reason": "The fitted frequency must stay inside the declared source band."
+    }
+  ]
+}

@@ -549,8 +549,16 @@ def validate_provenance(prefix: str, package: PackageBundle, checks: list[Check]
             "source.polar_h10.measurement_spec_snapshot",
             "source.polar_h10.security_context",
             "source.method.hrv_metrics",
+            "source.method.hrv_transform_context",
+            "source.method.rmssd_gain",
             "source.method.coherence_ratio",
+            "source.method.hrvb_protocol_guidelines",
+            "source.method.hrvb_resonance_mechanism",
+            "source.method.hrvb_resonance_amplitude",
             "source.method.breathing_dynamics",
+            "source.method.sample_entropy",
+            "source.method.multiscale_entropy",
+            "source.method.lempel_ziv_complexity",
             "source.method.acc_breath_proxy",
         }
         errors += [f"source:{source_id}" for source_id in sorted(required_sources - source_ids)]
@@ -604,23 +612,198 @@ def validate_processor_goldens(prefix: str, package: PackageBundle, checks: list
         return
 
     errors: list[str] = []
-    golden = find_one(
-        package.processing_goldens,
-        "golden_id",
-        "golden.polar_h10.coherence.spectral_ratio",
-    )
-    if golden is None:
-        errors.append("golden.polar_h10.coherence.spectral_ratio")
-    else:
-        errors += validate_coherence_golden(package, golden)
+    validators = {
+        "golden.polar_h10.hrv_window.rr_metrics": validate_hrv_window_golden,
+        "golden.polar_h10.rmssd_gain.log_delta": validate_rmssd_gain_golden,
+        "golden.polar_h10.coherence.spectral_ratio": validate_coherence_golden,
+        "golden.polar_h10.breath_volume.acc_projection": validate_breath_volume_golden,
+        "golden.polar_h10.breath_dynamics.cycle_stats": validate_breath_dynamics_golden,
+        "golden.polar_h10.hrvb_resonance_amplitude.sine_fit": validate_hrvb_amplitude_golden,
+    }
+    for golden_id, validator in validators.items():
+        golden = find_one(package.processing_goldens, "golden_id", golden_id)
+        if golden is None:
+            errors.append(golden_id)
+        else:
+            errors += validator(package, golden)
 
     append_check(
         checks,
         f"{prefix}.processor_goldens",
         not errors,
-        "Polar processor golden fixtures recompute expected spectral outputs",
+        "Polar processor golden fixtures recompute expected non-live outputs",
         f"processor golden issues: {errors}",
     )
+
+
+def validate_golden_links(
+    package: PackageBundle, golden: dict[str, Any], required_fields: dict[str, str]
+) -> list[str]:
+    errors: list[str] = []
+    module_ids = {module["module_id"] for module in package.modules}
+    stream_ids = {stream["stream_id"] for stream in package.streams}
+
+    for key, expected in required_fields.items():
+        if golden.get(key) != expected:
+            errors.append(f"{key}:{golden.get(key)}")
+
+    if golden.get("module_id") not in module_ids:
+        errors.append("module_id")
+    for key in ("input_stream_id", "output_stream_id"):
+        if golden.get(key) not in stream_ids:
+            errors.append(key)
+    return errors
+
+
+def validate_holding_cases(
+    golden: dict[str, Any], required_damaged_issue_codes: set[str]
+) -> list[str]:
+    errors: list[str] = []
+    cases = golden.get("cases", [])
+    if not isinstance(cases, list) or not cases:
+        errors.append("cases")
+    damaged_cases = golden.get("damaged_cases", [])
+    if not isinstance(damaged_cases, list) or not damaged_cases:
+        errors.append("damaged_cases")
+    else:
+        present = {
+            str(case.get("expected_issue_code", ""))
+            for case in damaged_cases
+            if isinstance(case, dict)
+        }
+        errors += [
+            f"damaged_issue:{issue_code}"
+            for issue_code in sorted(required_damaged_issue_codes - present)
+        ]
+        for damaged_case in damaged_cases:
+            if not isinstance(damaged_case, dict):
+                errors.append("damaged_case")
+                continue
+            case_id = str(damaged_case.get("case_id", ""))
+            if not ID_RE.match(case_id):
+                errors.append(f"{case_id}:case_id")
+            issue_code = str(damaged_case.get("expected_issue_code", ""))
+            if not ID_RE.match(issue_code):
+                errors.append(f"{case_id}:expected_issue_code")
+    return errors
+
+
+def validate_hrv_window_golden(
+    package: PackageBundle, golden: dict[str, Any]
+) -> list[str]:
+    errors = validate_golden_links(
+        package,
+        golden,
+        {
+            "package_id": "package.polar_h10",
+            "module_id": "module.polar_h10.hrv_window",
+            "input_stream_id": "stream.polar_h10.hr_rr",
+            "output_stream_id": "stream.polar_h10.hrv_window",
+            "source_id": "source.method.hrv_metrics",
+        },
+    )
+    errors += validate_holding_cases(
+        golden, {"issue.window_underfilled", "issue.quality_low"}
+    )
+    for case in golden.get("cases", []):
+        if isinstance(case, dict):
+            errors += validate_hrv_window_case(case)
+    return errors
+
+
+def validate_hrv_window_case(case: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    case_id = str(case.get("case_id", ""))
+    expected = case.get("expected", {})
+    if not isinstance(expected, dict):
+        return [f"{case_id}:expected"]
+    tolerance = numeric(case.get("tolerance", {}).get("absolute")) or 0.000001
+    rr = case.get("input", {}).get("rr_intervals_ms")
+    if not isinstance(rr, list) or len(rr) < 2:
+        return [f"{case_id}:rr_intervals_ms"]
+    values = [numeric(item) for item in rr]
+    mean_nn = sum(values) / len(values)
+    diffs = [values[index + 1] - values[index] for index in range(len(values) - 1)]
+    rmssd = math.sqrt(sum(diff * diff for diff in diffs) / len(diffs))
+    sdnn = math.sqrt(
+        sum((value - mean_nn) * (value - mean_nn) for value in values)
+        / (len(values) - 1)
+    )
+    actual = {
+        "accepted_count": float(len(values)),
+        "rejected_count": 0.0,
+        "successive_difference_count": float(len(diffs)),
+        "mean_nn_ms": mean_nn,
+        "mean_hr_bpm": 60000.0 / mean_nn,
+        "sdnn_ms": sdnn,
+        "rmssd_ms": rmssd,
+        "ln_rmssd": math.log(rmssd),
+        "pnn50": sum(1 for diff in diffs if abs(diff) > 50.0) / len(diffs),
+        "sd1_ms": rmssd / math.sqrt(2.0),
+    }
+    for key, actual_value in actual.items():
+        if key not in expected:
+            errors.append(f"{case_id}:{key}:missing")
+        elif not within_tolerance(actual_value, numeric(expected.get(key)), tolerance):
+            errors.append(f"{case_id}:{key}")
+    if expected.get("quality") != "stable":
+        errors.append(f"{case_id}:quality")
+    return errors
+
+
+def validate_rmssd_gain_golden(
+    package: PackageBundle, golden: dict[str, Any]
+) -> list[str]:
+    errors = validate_golden_links(
+        package,
+        golden,
+        {
+            "package_id": "package.polar_h10",
+            "module_id": "module.polar_h10.rmssd_gain",
+            "input_stream_id": "stream.polar_h10.hrv_window",
+            "output_stream_id": "stream.polar_h10.rmssd_gain",
+            "source_id": "source.method.rmssd_gain",
+        },
+    )
+    errors += validate_holding_cases(
+        golden, {"issue.baseline_missing", "issue.baseline_invalid"}
+    )
+    for case in golden.get("cases", []):
+        if isinstance(case, dict):
+            errors += validate_rmssd_gain_case(case)
+    return errors
+
+
+def validate_rmssd_gain_case(case: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    case_id = str(case.get("case_id", ""))
+    expected = case.get("expected", {})
+    if not isinstance(expected, dict):
+        return [f"{case_id}:expected"]
+    tolerance = numeric(case.get("tolerance", {}).get("absolute")) or 0.000001
+    case_input = case.get("input", {})
+    live = case_input.get("live", {}) if isinstance(case_input, dict) else {}
+    baseline = case_input.get("baseline", {}) if isinstance(case_input, dict) else {}
+    live_ln = numeric(live.get("ln_rmssd"))
+    baseline_ln = numeric(baseline.get("baseline_ln_rmssd"))
+    baseline_mean = numeric(baseline.get("baseline_mean_ln_rmssd"))
+    baseline_sd = numeric(baseline.get("baseline_sd_ln_rmssd"))
+    if baseline_sd <= 0.0:
+        return [f"{case_id}:baseline_sd_ln_rmssd"]
+    gain = live_ln - baseline_ln
+    actual = {
+        "ln_rmssd_gain": gain,
+        "rmssd_ratio": math.exp(gain),
+        "baseline_z_score": (live_ln - baseline_mean) / baseline_sd,
+    }
+    for key, actual_value in actual.items():
+        if key not in expected:
+            errors.append(f"{case_id}:{key}:missing")
+        elif not within_tolerance(actual_value, numeric(expected.get(key)), tolerance):
+            errors.append(f"{case_id}:{key}")
+    if expected.get("quality") != "stable":
+        errors.append(f"{case_id}:quality")
+    return errors
 
 
 def validate_coherence_golden(
@@ -657,6 +840,9 @@ def validate_coherence_golden(
         "analysis_window": "rectangular",
         "power_normalization": "magnitude_squared_over_n_squared",
         "paper_ratio_formula": "peak_band_power / (total_band_power - peak_band_power)",
+        "coherence_ratio_formula": "peak_band_power / remaining_power",
+        "coherence_ratio_squared_formula": "coherence_ratio * coherence_ratio",
+        "normalized_peak_power_formula": "peak_band_power / total_band_power",
         "normalized_score_formula": "paper_ratio / (paper_ratio + 1)",
     }
     for key, expected in expected_settings.items():
@@ -712,7 +898,11 @@ def validate_coherence_case(settings: dict[str, Any], case: dict[str, Any]) -> l
         "peak_frequency_hz",
         "peak_band_power",
         "total_band_power",
+        "remaining_power",
         "paper_ratio",
+        "coherence_ratio",
+        "coherence_ratio_squared",
+        "normalized_peak_power",
         "normalized_score",
     ):
         if key not in expected:
@@ -810,19 +1000,226 @@ def compute_coherence_case(
     remaining_power = total_band_power - peak_band_power
     if remaining_power <= 0.0:
         paper_ratio = math.inf
+        normalized_peak_power = 1.0
         normalized_score = 1.0
     else:
         paper_ratio = peak_band_power / remaining_power
+        normalized_peak_power = peak_band_power / total_band_power
         normalized_score = paper_ratio / (paper_ratio + 1.0)
 
     return {
         "peak_frequency_hz": peak_frequency_hz,
         "peak_band_power": peak_band_power,
         "total_band_power": total_band_power,
+        "remaining_power": remaining_power,
         "paper_ratio": paper_ratio,
+        "coherence_ratio": paper_ratio,
+        "coherence_ratio_squared": paper_ratio * paper_ratio,
+        "normalized_peak_power": normalized_peak_power,
         "normalized_score": normalized_score,
         "quality": "stable" if paper_ratio >= 2.0 else "distributed",
     }
+
+
+def validate_breath_volume_golden(
+    package: PackageBundle, golden: dict[str, Any]
+) -> list[str]:
+    errors = validate_golden_links(
+        package,
+        golden,
+        {
+            "package_id": "package.polar_h10",
+            "module_id": "module.polar_h10.breath_volume_from_acc",
+            "input_stream_id": "stream.polar_h10.acc",
+            "output_stream_id": "stream.polar_h10.breath_volume",
+            "source_id": "source.method.acc_breath_proxy",
+        },
+    )
+    errors += validate_holding_cases(golden, {"issue.calibration_invalid"})
+    for case in golden.get("cases", []):
+        if isinstance(case, dict):
+            errors += validate_breath_volume_case(case)
+    return errors
+
+
+def validate_breath_volume_case(case: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    case_id = str(case.get("case_id", ""))
+    expected = case.get("expected", {})
+    if not isinstance(expected, dict):
+        return [f"{case_id}:expected"]
+    tolerance = numeric(case.get("tolerance", {}).get("absolute")) or 0.000001
+    case_input = case.get("input", {})
+    calibration = (
+        case_input.get("calibration_projection", []) if isinstance(case_input, dict) else []
+    )
+    if not isinstance(calibration, list) or not calibration:
+        return [f"{case_id}:calibration_projection"]
+    values = [numeric(item) for item in calibration]
+    lower_bound = min(values)
+    upper_bound = max(values)
+    live_projection = numeric(case_input.get("live_projection"))
+    previous_projection = numeric(case_input.get("previous_projection"))
+    if upper_bound <= lower_bound:
+        return [f"{case_id}:bounds"]
+    volume = max(0.0, min(1.0, (live_projection - lower_bound) / (upper_bound - lower_bound)))
+    phase = "inhale" if live_projection >= previous_projection else "exhale"
+    actual = {
+        "lower_bound": lower_bound,
+        "upper_bound": upper_bound,
+        "breath_volume_01": volume,
+        "confidence": 1.0,
+    }
+    for key, actual_value in actual.items():
+        if key not in expected:
+            errors.append(f"{case_id}:{key}:missing")
+        elif not within_tolerance(actual_value, numeric(expected.get(key)), tolerance):
+            errors.append(f"{case_id}:{key}")
+    if expected.get("phase") != phase:
+        errors.append(f"{case_id}:phase")
+    if expected.get("quality") != "stable":
+        errors.append(f"{case_id}:quality")
+    return errors
+
+
+def validate_breath_dynamics_golden(
+    package: PackageBundle, golden: dict[str, Any]
+) -> list[str]:
+    errors = validate_golden_links(
+        package,
+        golden,
+        {
+            "package_id": "package.polar_h10",
+            "module_id": "module.polar_h10.breath_dynamics",
+            "input_stream_id": "stream.polar_h10.breath_volume",
+            "output_stream_id": "stream.polar_h10.breath_dynamics",
+            "source_id": "source.method.breathing_dynamics",
+        },
+    )
+    errors += validate_holding_cases(golden, {"issue.window_underfilled"})
+    for case in golden.get("cases", []):
+        if isinstance(case, dict):
+            errors += validate_breath_dynamics_case(case)
+    return errors
+
+
+def validate_breath_dynamics_case(case: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    case_id = str(case.get("case_id", ""))
+    expected = case.get("expected", {})
+    if not isinstance(expected, dict):
+        return [f"{case_id}:expected"]
+    tolerance = numeric(case.get("tolerance", {}).get("absolute")) or 0.000001
+    case_input = case.get("input", {})
+    intervals = case_input.get("breath_intervals_s", []) if isinstance(case_input, dict) else []
+    amplitudes = case_input.get("breath_amplitudes_01", []) if isinstance(case_input, dict) else []
+    if not isinstance(intervals, list) or not isinstance(amplitudes, list):
+        return [f"{case_id}:series"]
+    interval_values = [numeric(item) for item in intervals]
+    amplitude_values = [numeric(item) for item in amplitudes]
+    if len(interval_values) < 2 or len(amplitude_values) < 2:
+        return [f"{case_id}:underfilled"]
+    interval_mean = sum(interval_values) / len(interval_values)
+    amplitude_mean = sum(amplitude_values) / len(amplitude_values)
+    interval_sd = sample_sd(interval_values)
+    amplitude_sd = sample_sd(amplitude_values)
+    actual = {
+        "cycle_count": float(len(interval_values)),
+        "mean_interval_s": interval_mean,
+        "breathing_rate_bpm": 60.0 / interval_mean,
+        "interval_sd_s": interval_sd,
+        "interval_cv": interval_sd / interval_mean,
+        "mean_amplitude_01": amplitude_mean,
+        "amplitude_sd_01": amplitude_sd,
+        "amplitude_cv": amplitude_sd / amplitude_mean,
+    }
+    for key, actual_value in actual.items():
+        if key not in expected:
+            errors.append(f"{case_id}:{key}:missing")
+        elif not within_tolerance(actual_value, numeric(expected.get(key)), tolerance):
+            errors.append(f"{case_id}:{key}")
+    if expected.get("complexity_status") != "underfilled":
+        errors.append(f"{case_id}:complexity_status")
+    if expected.get("quality") != "stable":
+        errors.append(f"{case_id}:quality")
+    return errors
+
+
+def validate_hrvb_amplitude_golden(
+    package: PackageBundle, golden: dict[str, Any]
+) -> list[str]:
+    errors = validate_golden_links(
+        package,
+        golden,
+        {
+            "package_id": "package.polar_h10",
+            "module_id": "module.polar_h10.hrvb_resonance_amplitude",
+            "input_stream_id": "stream.polar_h10.hr_rr",
+            "output_stream_id": "stream.polar_h10.hrvb_resonance_amplitude",
+            "source_id": "source.method.hrvb_resonance_amplitude",
+        },
+    )
+    errors += validate_holding_cases(
+        golden, {"issue.window_underfilled", "issue.frequency_out_of_band"}
+    )
+    settings = golden.get("settings", {})
+    if not isinstance(settings, dict):
+        return errors + ["settings"]
+    band = frequency_band(settings.get("frequency_band_hz"), "frequency_band_hz")
+    if numeric(settings.get("window_seconds")) != 30.0:
+        errors.append("settings.window_seconds")
+    if numeric(settings.get("source_threshold_bpm")) != 2.0:
+        errors.append("settings.source_threshold_bpm")
+    for case in golden.get("cases", []):
+        if isinstance(case, dict):
+            errors += validate_hrvb_amplitude_case(case, band)
+    return errors
+
+
+def validate_hrvb_amplitude_case(
+    case: dict[str, Any], band: tuple[float, float]
+) -> list[str]:
+    errors: list[str] = []
+    case_id = str(case.get("case_id", ""))
+    expected = case.get("expected", {})
+    if not isinstance(expected, dict):
+        return [f"{case_id}:expected"]
+    tolerance = numeric(case.get("tolerance", {}).get("absolute")) or 0.000001
+    generator = case.get("input", {}).get("generator", {})
+    if not isinstance(generator, dict):
+        return [f"{case_id}:generator"]
+    frequency_hz = numeric(generator.get("frequency_hz"))
+    if not in_band(frequency_hz, band):
+        errors.append(f"{case_id}:frequency_hz")
+    amplitude = numeric(generator.get("amplitude_bpm"))
+    mean_hr = numeric(generator.get("mean_hr_bpm"))
+    phase = numeric(generator.get("phase_rad"))
+    omega = 2.0 * math.pi * frequency_hz
+    actual = {
+        "amplitude_bpm": amplitude,
+        "mean_hr_bpm": mean_hr,
+        "frequency_hz": frequency_hz,
+        "omega_rad_s": omega,
+        "phase_rad": phase,
+        "median_session_amplitude_bpm": amplitude,
+    }
+    for key, actual_value in actual.items():
+        if key not in expected:
+            errors.append(f"{case_id}:{key}:missing")
+        elif not within_tolerance(actual_value, numeric(expected.get(key)), tolerance):
+            errors.append(f"{case_id}:{key}")
+    if expected.get("threshold_status") != "above_source_threshold":
+        errors.append(f"{case_id}:threshold_status")
+    if expected.get("quality") != "stable":
+        errors.append(f"{case_id}:quality")
+    return errors
+
+
+def sample_sd(values: list[float]) -> float:
+    mean = sum(values) / len(values)
+    return math.sqrt(
+        sum((value - mean) * (value - mean) for value in values) / (len(values) - 1)
+    )
 
 
 def synthesize_rr_window(fft_length: int, case_input: dict[str, Any]) -> list[float]:
@@ -904,8 +1301,10 @@ def validate_polar_readiness(
         "module.polar_h10.provider",
         "module.polar_h10.breath_volume_from_acc",
         "module.polar_h10.hrv_window",
+        "module.polar_h10.rmssd_gain",
         "module.polar_h10.coherence",
         "module.polar_h10.breath_dynamics",
+        "module.polar_h10.hrvb_resonance_amplitude",
     }
     append_check(
         checks,

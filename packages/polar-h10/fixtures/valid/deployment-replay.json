@@ -7,8 +7,10 @@
     "module.polar_h10.provider",
     "module.polar_h10.breath_volume_from_acc",
     "module.polar_h10.hrv_window",
+    "module.polar_h10.rmssd_gain",
     "module.polar_h10.coherence",
-    "module.polar_h10.breath_dynamics"
+    "module.polar_h10.breath_dynamics",
+    "module.polar_h10.hrvb_resonance_amplitude"
   ],
   "selected_backends": [
     {
@@ -24,11 +26,19 @@
       "backend_id": "backend.replay"
     },
     {
+      "module_id": "module.polar_h10.rmssd_gain",
+      "backend_id": "backend.replay"
+    },
+    {
       "module_id": "module.polar_h10.coherence",
       "backend_id": "backend.replay"
     },
     {
       "module_id": "module.polar_h10.breath_dynamics",
+      "backend_id": "backend.replay"
+    },
+    {
+      "module_id": "module.polar_h10.hrvb_resonance_amplitude",
       "backend_id": "backend.replay"
     }
   ],

@@ -1,0 +1,67 @@
+{
+  "$schema": "rusty.manifold.processor.breath_dynamics_golden.v1",
+  "golden_id": "golden.polar_h10.breath_dynamics.cycle_stats",
+  "package_id": "package.polar_h10",
+  "module_id": "module.polar_h10.breath_dynamics",
+  "input_stream_id": "stream.polar_h10.breath_volume",
+  "output_stream_id": "stream.polar_h10.breath_dynamics",
+  "source_id": "source.method.breathing_dynamics",
+  "settings": {
+    "interval_units": "s",
+    "amplitude_units": "normalized",
+    "cv_formula": "sample_sd / mean",
+    "breathing_rate_formula": "60 / mean_interval_s",
+    "undefined_policy": "explicit_reason_no_nan"
+  },
+  "cases": [
+    {
+      "case_id": "case.polar_h10.breath_dynamics.basic_cycles",
+      "input": {
+        "breath_intervals_s": [
+          4.0,
+          5.0,
+          6.0,
+          5.0,
+          4.0
+        ],
+        "breath_amplitudes_01": [
+          0.6,
+          0.8,
+          0.7,
+          0.9,
+          0.75
+        ]
+      },
+      "expected": {
+        "cycle_count": 5,
+        "mean_interval_s": 4.8,
+        "breathing_rate_bpm": 12.5,
+        "interval_sd_s": 0.836660026534,
+        "interval_cv": 0.174304172195,
+        "mean_amplitude_01": 0.75,
+        "amplitude_sd_01": 0.111803398875,
+        "amplitude_cv": 0.1490711985,
+        "complexity_status": "underfilled",
+        "quality": "stable"
+      },
+      "tolerance": {
+        "absolute": 0.000001
+      }
+    }
+  ],
+  "damaged_cases": [
+    {
+      "case_id": "case.polar_h10.breath_dynamics.underfilled",
+      "input": {
+        "breath_intervals_s": [
+          5.0
+        ],
+        "breath_amplitudes_01": [
+          0.5
+        ]
+      },
+      "expected_issue_code": "issue.window_underfilled",
+      "reason": "Dynamics require multiple breath cycles."
+    }
+  ]
+}

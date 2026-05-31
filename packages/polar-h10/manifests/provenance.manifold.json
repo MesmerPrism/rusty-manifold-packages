@@ -59,6 +59,33 @@
       "copy_policy": "cite_and_rederive"
     },
     {
+      "source_id": "source.method.hrv_transform_context",
+      "source_kind": "peer_reviewed_method",
+      "citation": {
+        "label": "Heart Rate Variability and Cardiac Vagal Tone in Psychophysiological Research - Recommendations for Experiment Planning, Data Analysis, and Data Reporting",
+        "doi": "10.3389/fpsyg.2017.00213",
+        "url": null
+      },
+      "claim_scope": [
+        "claim.processor.hrv_window",
+        "claim.processor.rmssd_gain"
+      ],
+      "copy_policy": "cite_and_rederive"
+    },
+    {
+      "source_id": "source.method.rmssd_gain",
+      "source_kind": "peer_reviewed_method",
+      "citation": {
+        "label": "The effect of a single-session heart rate variability biofeedback on attentional control: does stress matter?",
+        "doi": "10.3389/fpsyg.2023.1292983",
+        "url": "https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2023.1292983/pdf"
+      },
+      "claim_scope": [
+        "claim.processor.rmssd_gain"
+      ],
+      "copy_policy": "cite_and_rederive"
+    },
+    {
       "source_id": "source.method.coherence_ratio",
       "source_kind": "method_reference",
       "citation": {
@@ -72,11 +99,89 @@
       "copy_policy": "cite_and_rederive"
     },
     {
+      "source_id": "source.method.hrvb_protocol_guidelines",
+      "source_kind": "systematic_review_guideline",
+      "citation": {
+        "label": "Methods for Heart Rate Variability Biofeedback (HRVB): A Systematic Review and Guidelines",
+        "doi": "10.1007/s10484-023-09582-6",
+        "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10412682/"
+      },
+      "claim_scope": [
+        "claim.processor.hrvb_resonance_amplitude"
+      ],
+      "copy_policy": "cite_and_rederive"
+    },
+    {
+      "source_id": "source.method.hrvb_resonance_mechanism",
+      "source_kind": "peer_reviewed_method",
+      "citation": {
+        "label": "Heart rate variability biofeedback: how and why does it work?",
+        "doi": "10.3389/fpsyg.2014.00756",
+        "url": null
+      },
+      "claim_scope": [
+        "claim.processor.hrvb_resonance_amplitude"
+      ],
+      "copy_policy": "cite_and_rederive"
+    },
+    {
+      "source_id": "source.method.hrvb_resonance_amplitude",
+      "source_kind": "peer_reviewed_method_with_supplement",
+      "citation": {
+        "label": "Real-time heart rate variability biofeedback amplitude during a large-scale digital mental health intervention differed by age, gender, and mental and physical health",
+        "doi": "10.1111/psyp.14533",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/38454612/"
+      },
+      "claim_scope": [
+        "claim.processor.hrvb_resonance_amplitude"
+      ],
+      "copy_policy": "cite_and_rederive"
+    },
+    {
       "source_id": "source.method.breathing_dynamics",
       "source_kind": "peer_reviewed_method",
       "citation": {
         "label": "It's About Time: Breathing Dynamics Modulate Emotion and Cognition",
         "doi": "10.1111/psyp.70149",
+        "url": null
+      },
+      "claim_scope": [
+        "claim.processor.breath_dynamics"
+      ],
+      "copy_policy": "cite_and_rederive_with_input_boundary"
+    },
+    {
+      "source_id": "source.method.sample_entropy",
+      "source_kind": "peer_reviewed_method",
+      "citation": {
+        "label": "Physiological time-series analysis using approximate entropy and sample entropy",
+        "doi": "10.1152/ajpheart.2000.278.6.H2039",
+        "url": null
+      },
+      "claim_scope": [
+        "claim.processor.breath_dynamics"
+      ],
+      "copy_policy": "cite_and_rederive_with_input_boundary"
+    },
+    {
+      "source_id": "source.method.multiscale_entropy",
+      "source_kind": "peer_reviewed_method",
+      "citation": {
+        "label": "Multiscale entropy analysis of complex physiologic time series",
+        "doi": "10.1103/PhysRevLett.89.068102",
+        "url": null
+      },
+      "claim_scope": [
+        "claim.processor.breath_dynamics"
+      ],
+      "copy_policy": "cite_and_rederive_with_input_boundary"
+    },
+    {
+      "source_id": "source.method.lempel_ziv_complexity",
+      "source_kind": "peer_reviewed_method",
+      "citation": {
+        "label": "On the Complexity of Finite Sequences",
+        "doi": "10.1109/TIT.1976.1055501",
         "url": null
       },
       "claim_scope": [
@@ -111,9 +216,19 @@
     {
       "module_id": "module.polar_h10.hrv_window",
       "source_ids": [
-        "source.method.hrv_metrics"
+        "source.method.hrv_metrics",
+        "source.method.hrv_transform_context"
       ],
       "claim_boundary": "HRV output is short-window telemetry for validation and operator feedback, not diagnosis."
+    },
+    {
+      "module_id": "module.polar_h10.rmssd_gain",
+      "source_ids": [
+        "source.method.hrv_metrics",
+        "source.method.hrv_transform_context",
+        "source.method.rmssd_gain"
+      ],
+      "claim_boundary": "RMSSD gain output is baseline-relative HRV telemetry and must keep log-gain, ratio, z-score, and display mapping separate."
     },
     {
       "module_id": "module.polar_h10.coherence",
@@ -133,9 +248,21 @@
       "module_id": "module.polar_h10.breath_dynamics",
       "source_ids": [
         "source.method.breathing_dynamics",
+        "source.method.sample_entropy",
+        "source.method.multiscale_entropy",
+        "source.method.lempel_ziv_complexity",
         "source.method.acc_breath_proxy"
       ],
       "claim_boundary": "Breathing-dynamics features are rederived over the package breathing proxy and must not be described as the original belt-sensor pipeline."
+    },
+    {
+      "module_id": "module.polar_h10.hrvb_resonance_amplitude",
+      "source_ids": [
+        "source.method.hrvb_protocol_guidelines",
+        "source.method.hrvb_resonance_mechanism",
+        "source.method.hrvb_resonance_amplitude"
+      ],
+      "claim_boundary": "HRVB resonance amplitude is source-bound operator-feedback telemetry over accepted HR/RR and must not be described as coherence, RMSSD gain, diagnosis, treatment, or a clinical score."
     }
   ],
   "notice_requirements": [

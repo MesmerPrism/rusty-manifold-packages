@@ -42,6 +42,9 @@
   "issue_codes": [
     "issue.input_stream_missing",
     "issue.calibration_required",
+    "issue.calibration_underfilled",
+    "issue.calibration_invalid",
+    "issue.input_stale",
     "issue.quality_low"
   ]
 }

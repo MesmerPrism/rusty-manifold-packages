@@ -1,0 +1,75 @@
+{
+  "$schema": "rusty.manifold.processor.hrv_window_golden.v1",
+  "golden_id": "golden.polar_h10.hrv_window.rr_metrics",
+  "package_id": "package.polar_h10",
+  "module_id": "module.polar_h10.hrv_window",
+  "input_stream_id": "stream.polar_h10.hr_rr",
+  "output_stream_id": "stream.polar_h10.hrv_window",
+  "source_id": "source.method.hrv_metrics",
+  "settings": {
+    "rr_interval_units": "ms",
+    "valid_interval_ms": [
+      300.0,
+      2000.0
+    ],
+    "sdnn_formula": "sample_standard_deviation",
+    "rmssd_formula": "sqrt(mean(successive_difference_squared))",
+    "ln_transform": "natural_log",
+    "sd1_formula": "rmssd / sqrt(2)"
+  },
+  "cases": [
+    {
+      "case_id": "case.polar_h10.hrv_window.basic_rr",
+      "input": {
+        "rr_intervals_ms": [
+          1000.0,
+          1010.0,
+          990.0,
+          1005.0,
+          995.0,
+          1000.0
+        ]
+      },
+      "expected": {
+        "accepted_count": 6,
+        "rejected_count": 0,
+        "successive_difference_count": 5,
+        "mean_nn_ms": 1000.0,
+        "mean_hr_bpm": 60.0,
+        "sdnn_ms": 7.071067811865,
+        "rmssd_ms": 13.038404810405,
+        "ln_rmssd": 2.567899218525,
+        "pnn50": 0.0,
+        "sd1_ms": 9.219544457293,
+        "quality": "stable"
+      },
+      "tolerance": {
+        "absolute": 0.000001
+      }
+    }
+  ],
+  "damaged_cases": [
+    {
+      "case_id": "case.polar_h10.hrv_window.underfilled",
+      "input": {
+        "rr_intervals_ms": [
+          1000.0
+        ]
+      },
+      "expected_issue_code": "issue.window_underfilled",
+      "reason": "RMSSD requires at least two accepted intervals."
+    },
+    {
+      "case_id": "case.polar_h10.hrv_window.invalid_interval",
+      "input": {
+        "rr_intervals_ms": [
+          1000.0,
+          2500.0,
+          990.0
+        ]
+      },
+      "expected_issue_code": "issue.quality_low",
+      "reason": "Intervals outside the declared range are rejected and counted."
+    }
+  ]
+}

@@ -1,8 +1,8 @@
 {
   "$schema": "rusty.manifold.module.manifest.v1",
-  "module_id": "module.polar_h10.breath_dynamics",
+  "module_id": "module.polar_h10.hrvb_resonance_amplitude",
   "module_kind": "processor",
-  "label": "Polar H10 Breath Dynamics",
+  "label": "Polar H10 HRVB Resonance Amplitude",
   "version": "0.1.0",
   "lifecycle_states": [
     "available",
@@ -12,10 +12,10 @@
     "failed"
   ],
   "provides_streams": [
-    "stream.polar_h10.breath_dynamics"
+    "stream.polar_h10.hrvb_resonance_amplitude"
   ],
   "consumes_streams": [
-    "stream.polar_h10.breath_volume"
+    "stream.polar_h10.hr_rr"
   ],
   "accepted_commands": [
     "command.polar_h10.processor_reset"
@@ -40,10 +40,9 @@
   ],
   "issue_codes": [
     "issue.input_stream_missing",
-    "issue.calibration_required",
     "issue.window_underfilled",
-    "issue.invalid_timestamps",
-    "issue.insufficient_entropy_sample_count",
+    "issue.fit_not_converged",
+    "issue.frequency_out_of_band",
     "issue.quality_low"
   ]
 }

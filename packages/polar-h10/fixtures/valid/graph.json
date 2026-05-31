@@ -16,12 +16,20 @@
       "module_id": "module.polar_h10.hrv_window"
     },
     {
+      "node_id": "node.polar_h10_rmssd_gain",
+      "module_id": "module.polar_h10.rmssd_gain"
+    },
+    {
       "node_id": "node.polar_h10_coherence",
       "module_id": "module.polar_h10.coherence"
     },
     {
       "node_id": "node.polar_h10_breath_dynamics",
       "module_id": "module.polar_h10.breath_dynamics"
+    },
+    {
+      "node_id": "node.polar_h10_hrvb_resonance_amplitude",
+      "module_id": "module.polar_h10.hrvb_resonance_amplitude"
     }
   ],
   "edges": [
@@ -40,10 +48,24 @@
       "target_input_id": "stream.polar_h10.hr_rr"
     },
     {
+      "edge_id": "edge.polar_h10_hrv_to_rmssd_gain",
+      "source_node_id": "node.polar_h10_hrv_window",
+      "source_stream_id": "stream.polar_h10.hrv_window",
+      "target_node_id": "node.polar_h10_rmssd_gain",
+      "target_input_id": "stream.polar_h10.hrv_window"
+    },
+    {
       "edge_id": "edge.polar_h10_hr_rr_to_coherence",
       "source_node_id": "node.polar_h10_provider",
       "source_stream_id": "stream.polar_h10.hr_rr",
       "target_node_id": "node.polar_h10_coherence",
+      "target_input_id": "stream.polar_h10.hr_rr"
+    },
+    {
+      "edge_id": "edge.polar_h10_hr_rr_to_hrvb_resonance_amplitude",
+      "source_node_id": "node.polar_h10_provider",
+      "source_stream_id": "stream.polar_h10.hr_rr",
+      "target_node_id": "node.polar_h10_hrvb_resonance_amplitude",
       "target_input_id": "stream.polar_h10.hr_rr"
     },
     {

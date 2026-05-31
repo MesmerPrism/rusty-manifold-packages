@@ -1,0 +1,60 @@
+{
+  "$schema": "rusty.manifold.processor.breath_volume_golden.v1",
+  "golden_id": "golden.polar_h10.breath_volume.acc_projection",
+  "package_id": "package.polar_h10",
+  "module_id": "module.polar_h10.breath_volume_from_acc",
+  "input_stream_id": "stream.polar_h10.acc",
+  "output_stream_id": "stream.polar_h10.breath_volume",
+  "source_id": "source.method.acc_breath_proxy",
+  "settings": {
+    "ema_alpha": 0.2,
+    "projection_formula": "dot(smoothed_acc - center, axis)",
+    "normalization_formula": "clamp((projection - lower_bound) / (upper_bound - lower_bound), 0, 1)",
+    "calibration_quantiles": [
+      0.0,
+      1.0
+    ]
+  },
+  "cases": [
+    {
+      "case_id": "case.polar_h10.breath_volume.basic_projection",
+      "input": {
+        "calibration_projection": [
+          0.0,
+          0.25,
+          0.5,
+          0.75,
+          1.0
+        ],
+        "live_projection": 0.75,
+        "previous_projection": 0.5
+      },
+      "expected": {
+        "lower_bound": 0.0,
+        "upper_bound": 1.0,
+        "breath_volume_01": 0.75,
+        "phase": "inhale",
+        "confidence": 1.0,
+        "quality": "stable"
+      },
+      "tolerance": {
+        "absolute": 0.000001
+      }
+    }
+  ],
+  "damaged_cases": [
+    {
+      "case_id": "case.polar_h10.breath_volume.flat_calibration",
+      "input": {
+        "calibration_projection": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "live_projection": 0.5
+      },
+      "expected_issue_code": "issue.calibration_invalid",
+      "reason": "Calibration bounds must span a positive range."
+    }
+  ]
+}

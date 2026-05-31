@@ -24,6 +24,9 @@
     "peak_window_half_width_hz": 0.03,
     "power_normalization": "magnitude_squared_over_n_squared",
     "paper_ratio_formula": "peak_band_power / (total_band_power - peak_band_power)",
+    "coherence_ratio_formula": "peak_band_power / remaining_power",
+    "coherence_ratio_squared_formula": "coherence_ratio * coherence_ratio",
+    "normalized_peak_power_formula": "peak_band_power / total_band_power",
     "normalized_score_formula": "paper_ratio / (paper_ratio + 1)"
   },
   "cases": [
@@ -53,7 +56,11 @@
         "peak_frequency_hz": 0.09375,
         "peak_band_power": 625.0,
         "total_band_power": 656.25,
+        "remaining_power": 31.25,
         "paper_ratio": 20.0,
+        "coherence_ratio": 20.0,
+        "coherence_ratio_squared": 400.0,
+        "normalized_peak_power": 0.952380952381,
         "normalized_score": 0.952380952381,
         "quality": "stable"
       },
@@ -92,7 +99,11 @@
         "peak_frequency_hz": 0.078125,
         "peak_band_power": 225.0,
         "total_band_power": 525.0,
+        "remaining_power": 300.0,
         "paper_ratio": 0.75,
+        "coherence_ratio": 0.75,
+        "coherence_ratio_squared": 0.5625,
+        "normalized_peak_power": 0.428571428571,
         "normalized_score": 0.428571428571,
         "quality": "distributed"
       },

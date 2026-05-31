@@ -1,8 +1,8 @@
 {
   "$schema": "rusty.manifold.module.manifest.v1",
-  "module_id": "module.polar_h10.breath_dynamics",
+  "module_id": "module.polar_h10.rmssd_gain",
   "module_kind": "processor",
-  "label": "Polar H10 Breath Dynamics",
+  "label": "Polar H10 RMSSD Gain",
   "version": "0.1.0",
   "lifecycle_states": [
     "available",
@@ -12,12 +12,13 @@
     "failed"
   ],
   "provides_streams": [
-    "stream.polar_h10.breath_dynamics"
+    "stream.polar_h10.rmssd_gain"
   ],
   "consumes_streams": [
-    "stream.polar_h10.breath_volume"
+    "stream.polar_h10.hrv_window"
   ],
   "accepted_commands": [
+    "command.polar_h10.processor_calibrate",
     "command.polar_h10.processor_reset"
   ],
   "required_capabilities": [
@@ -40,10 +41,10 @@
   ],
   "issue_codes": [
     "issue.input_stream_missing",
-    "issue.calibration_required",
-    "issue.window_underfilled",
-    "issue.invalid_timestamps",
-    "issue.insufficient_entropy_sample_count",
-    "issue.quality_low"
+    "issue.input_quality_low",
+    "issue.baseline_missing",
+    "issue.baseline_underfilled",
+    "issue.baseline_invalid",
+    "issue.baseline_stale"
   ]
 }

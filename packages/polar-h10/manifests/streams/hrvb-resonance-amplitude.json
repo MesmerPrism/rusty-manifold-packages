@@ -1,0 +1,20 @@
+{
+  "$schema": "rusty.manifold.stream.manifest.v1",
+  "stream_id": "stream.polar_h10.hrvb_resonance_amplitude",
+  "source_module_id": "module.polar_h10.hrvb_resonance_amplitude",
+  "semantic_family": "beat.hrvb_resonance_amplitude",
+  "sample_schema": "rusty.manifold.sample.hrvb_resonance_amplitude.v1",
+  "rate_class": "periodic",
+  "timestamp_domains": [
+    "clock.host_monotonic"
+  ],
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "transport_offers": [],
+  "subscription": {
+    "ui_subscribable": true,
+    "max_subscribers": 8
+  }
+}

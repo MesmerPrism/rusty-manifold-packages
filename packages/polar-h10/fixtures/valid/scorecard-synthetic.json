@@ -8,7 +8,7 @@
     {
       "check_id": "validation.check.polar_provider_processor_split",
       "status": "pass",
-      "evidence": "Direct HR/RR, ECG, ACC, device status, and backend health streams stay on the provider; derived breath, HRV, and coherence streams stay on processors.",
+      "evidence": "Direct HR/RR, ECG, ACC, device status, and backend health streams stay on the provider; derived breath, HRV, RMSSD gain, coherence, breathing dynamics, and HRVB amplitude streams stay on processors.",
       "issue_codes": []
     },
     {
@@ -50,7 +50,13 @@
     {
       "check_id": "validation.check.polar_coherence_golden",
       "status": "pass",
-      "evidence": "Coherence golden fixtures recompute the spectral paper ratio separately from the normalized operator score.",
+      "evidence": "Coherence golden fixtures recompute primitive powers, unsquared ratio, squared ratio, and normalized score.",
+      "issue_codes": []
+    },
+    {
+      "check_id": "validation.check.polar_processing_goldens",
+      "status": "pass",
+      "evidence": "HRV window, RMSSD gain, breath-volume proxy, breathing dynamics, coherence, and HRVB amplitude all have valid and damaged synthetic fixtures.",
       "issue_codes": []
     }
   ],

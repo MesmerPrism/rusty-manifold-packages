@@ -17,16 +17,23 @@ Input:
 
 Output:
 
-- `paper_ratio`: peak-band power divided by the remaining total-band power.
-- `normalized_score`: package display score using
-  `paper_ratio / (paper_ratio + 1)`.
+- `peak_band_power`: power inside the peak-centered band.
+- `total_band_power`: power in the declared total band.
+- `remaining_power = total_band_power - peak_band_power`.
+- `paper_ratio`: peak-band power divided by remaining power.
+- `coherence_ratio`: same unsquared ratio, kept as an explicit contract field.
+- `coherence_ratio_squared = coherence_ratio * coherence_ratio`.
+- `normalized_peak_power = peak_band_power / total_band_power`.
+- `normalized_score`: package display score using the same primitive powers as
+  `normalized_peak_power`.
 - `peak_frequency_hz`: frequency of the strongest bin inside the peak-search
   band.
 - `peak_band_power` and `total_band_power`: positive-frequency band powers.
 - `quality`: `ok`, `underfilled`, or `low_signal`.
 
-The package keeps `paper_ratio` separate from `normalized_score` so downstream
-apps can choose their own display mapping without rewriting the source method.
+The package keeps primitive powers, the unsquared ratio, the squared ratio,
+and the normalized score separate so downstream apps can choose a display
+mapping without rewriting the source method.
 
 ## Fixture Method
 
@@ -59,7 +66,8 @@ A live coherence stream passes only when the evidence includes:
 - the 64-second window length and 2 Hz sample rate;
 - the peak frequency inside the configured peak-search band;
 - positive peak-band and total-band powers;
-- both `paper_ratio` and `normalized_score`;
+- `paper_ratio`, `coherence_ratio`, `coherence_ratio_squared`,
+  `normalized_peak_power`, and `normalized_score`;
 - an empty issue code on pass.
 
 ## Claim Boundary
