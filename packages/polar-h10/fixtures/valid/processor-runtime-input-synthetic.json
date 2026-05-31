@@ -1,0 +1,78 @@
+{
+  "$schema": "rusty.manifold.polar_h10.processor_runtime_input.v1",
+  "input_id": "input.polar_h10.processor_runtime.synthetic",
+  "hr_rr": {
+    "heart_rate_event_count": 6,
+    "rr_intervals_ms": [
+      1000.0,
+      1010.0,
+      990.0,
+      1005.0,
+      995.0,
+      1000.0
+    ]
+  },
+  "rmssd_gain_baseline": {
+    "baseline_ln_rmssd": 2.302585092994,
+    "baseline_mean_ln_rmssd": 2.4,
+    "baseline_sd_ln_rmssd": 0.2,
+    "baseline_window_count": 6,
+    "baseline_source": "explicit_baseline"
+  },
+  "coherence_uniform": {
+    "base_rr_ms": 1000.0,
+    "components": [
+      {
+        "bin": 6,
+        "amplitude_ms": 50.0,
+        "phase_rad": 0.0
+      },
+      {
+        "bin": 18,
+        "amplitude_ms": 10.0,
+        "phase_rad": 0.0
+      },
+      {
+        "bin": 22,
+        "amplitude_ms": 5.0,
+        "phase_rad": 0.0
+      }
+    ]
+  },
+  "breath_volume": {
+    "calibration_projection": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+    ],
+    "live_projection": 0.75,
+    "previous_projection": 0.5
+  },
+  "breath_dynamics": {
+    "breath_intervals_s": [
+      4.0,
+      5.0,
+      6.0,
+      5.0,
+      4.0
+    ],
+    "breath_amplitudes_01": [
+      0.6,
+      0.8,
+      0.7,
+      0.9,
+      0.75
+    ]
+  },
+  "hrvb_resonance_amplitude": {
+    "generator": {
+      "mean_hr_bpm": 62.0,
+      "amplitude_bpm": 3.5,
+      "frequency_hz": 0.1,
+      "phase_rad": 0.4,
+      "sample_count": 30
+    }
+  }
+}

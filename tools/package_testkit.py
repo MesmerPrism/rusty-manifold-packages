@@ -30,6 +30,9 @@ FORBIDDEN_TERMS = [
     "c:\\",
 ]
 BOUNDARY_SKIP = {"tools/check_packages.py", "tools/package_testkit.py"}
+BOUNDARY_TERM_EXCEPTIONS = {
+    "packages/polar-h10/manifests/provenance.manifold.json": {"ble", "gatt"}
+}
 
 
 @dataclass
@@ -159,14 +162,17 @@ def add_boundary_check(repo_root: Path, checks: list[Check]) -> None:
     offenders: list[str] = []
     for path in sorted(repo_root.rglob("*")):
         relative = path.relative_to(repo_root).as_posix()
-        if path.is_dir() or ".git" in path.parts or "__pycache__" in path.parts:
+        if path.is_dir() or ".git" in path.parts or "__pycache__" in path.parts or "target" in path.parts:
             continue
         if relative in BOUNDARY_SKIP:
             continue
         if path.suffix.lower() not in {".json", ".md", ".py", ".toml", ".txt"}:
             continue
         lower = path.read_text(encoding="utf-8").lower()
+        ignored_terms = BOUNDARY_TERM_EXCEPTIONS.get(relative, set())
         for term in FORBIDDEN_TERMS:
+            if term in ignored_terms:
+                continue
             if contains_forbidden_term(lower, term):
                 offenders.append(f"{relative} contains {term}")
     if offenders:
@@ -570,9 +576,31 @@ def validate_provenance(prefix: str, package: PackageBundle, checks: list[Check]
                 errors.append(f"{source_id}:claim_scope")
             if not source.get("copy_policy"):
                 errors.append(f"{source_id}:copy_policy")
-            doi = source.get("citation", {}).get("doi")
+            citation = source.get("citation", {})
+            doi = citation.get("doi")
+            url = citation.get("url")
             if doi == "10.3390/s25072005":
                 errors.append(f"{source_id}:stale_doi")
+            if not doi and not url:
+                errors.append(f"{source_id}:citation")
+            if url and not (
+                str(url).startswith("https://")
+                or str(url).startswith("http://")
+                or str(url).startswith("package://")
+            ):
+                errors.append(f"{source_id}:url")
+            snapshot = source.get("snapshot", {})
+            if not isinstance(snapshot, dict):
+                errors.append(f"{source_id}:snapshot")
+            else:
+                snapshot_id = str(snapshot.get("snapshot_id", ""))
+                if not ID_RE.match(snapshot_id):
+                    errors.append(f"{source_id}:snapshot_id")
+                retrieved_at = str(snapshot.get("retrieved_at", ""))
+                if not re.match(r"^\d{4}-\d{2}-\d{2}$", retrieved_at):
+                    errors.append(f"{source_id}:retrieved_at")
+                if not str(snapshot.get("digest", "")):
+                    errors.append(f"{source_id}:digest")
 
         modules = {module["module_id"] for module in package.modules}
         bindings = provenance.get("module_bindings", [])

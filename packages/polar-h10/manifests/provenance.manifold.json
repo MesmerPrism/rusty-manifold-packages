@@ -9,14 +9,19 @@
       "citation": {
         "label": "Polar vendor technical documentation, tag 4.0.0",
         "doi": null,
-        "url": null
+        "url": "https://github.com/polarofficial/polar-ble-sdk/tree/4.0.0"
       },
       "claim_scope": [
         "claim.provider.pmd_commands",
         "claim.provider.pmd_frames",
         "claim.provider.hr_rr_flags"
       ],
-      "copy_policy": "no_verbatim_source_copy"
+      "copy_policy": "no_verbatim_source_copy",
+      "snapshot": {
+        "snapshot_id": "snapshot.polar_h10.vendor_technical_docs.2026_05_31",
+        "retrieved_at": "2026-05-31",
+        "digest": "url:https://github.com/polarofficial/polar-ble-sdk/tree/4.0.0"
+      }
     },
     {
       "source_id": "source.polar_h10.measurement_spec_snapshot",
@@ -24,13 +29,18 @@
       "citation": {
         "label": "Polar Measurement Data Specification for 3rd Party, 2021-02-23 snapshot",
         "doi": null,
-        "url": null
+        "url": "https://github.com/polarofficial/polar-ble-sdk/blob/4.0.0/technical_documentation/Polar_Measurement_Data_Specification.pdf"
       },
       "claim_scope": [
         "claim.provider.pmd_commands",
         "claim.provider.pmd_frames"
       ],
-      "copy_policy": "no_verbatim_source_copy"
+      "copy_policy": "no_verbatim_source_copy",
+      "snapshot": {
+        "snapshot_id": "snapshot.polar_h10.measurement_spec.2026_05_31",
+        "retrieved_at": "2026-05-31",
+        "digest": "url:https://github.com/polarofficial/polar-ble-sdk/blob/4.0.0/technical_documentation/Polar_Measurement_Data_Specification.pdf"
+      }
     },
     {
       "source_id": "source.polar_h10.security_context",
@@ -38,12 +48,17 @@
       "citation": {
         "label": "The Newer, the More Secure? Standards-Compliant Bluetooth Low Energy Man-in-the-Middle Attacks on Fitness Trackers",
         "doi": "10.3390/s25061815",
-        "url": null
+        "url": "https://doi.org/10.3390/s25061815"
       },
       "claim_scope": [
         "claim.security.context_only"
       ],
-      "copy_policy": "cite_without_protocol_normativity"
+      "copy_policy": "cite_without_protocol_normativity",
+      "snapshot": {
+        "snapshot_id": "snapshot.polar_h10.security_context.2026_05_31",
+        "retrieved_at": "2026-05-31",
+        "digest": "doi:10.3390/s25061815"
+      }
     },
     {
       "source_id": "source.method.hrv_metrics",
@@ -51,12 +66,17 @@
       "citation": {
         "label": "An Overview of Heart Rate Variability Metrics and Norms",
         "doi": "10.3389/fpubh.2017.00258",
-        "url": null
+        "url": "https://doi.org/10.3389/fpubh.2017.00258"
       },
       "claim_scope": [
         "claim.processor.hrv_window"
       ],
-      "copy_policy": "cite_and_rederive"
+      "copy_policy": "cite_and_rederive",
+      "snapshot": {
+        "snapshot_id": "snapshot.method.hrv_metrics.2026_05_31",
+        "retrieved_at": "2026-05-31",
+        "digest": "doi:10.3389/fpubh.2017.00258"
+      }
     },
     {
       "source_id": "source.method.hrv_transform_context",
@@ -64,13 +84,18 @@
       "citation": {
         "label": "Heart Rate Variability and Cardiac Vagal Tone in Psychophysiological Research - Recommendations for Experiment Planning, Data Analysis, and Data Reporting",
         "doi": "10.3389/fpsyg.2017.00213",
-        "url": null
+        "url": "https://doi.org/10.3389/fpsyg.2017.00213"
       },
       "claim_scope": [
         "claim.processor.hrv_window",
         "claim.processor.rmssd_gain"
       ],
-      "copy_policy": "cite_and_rederive"
+      "copy_policy": "cite_and_rederive",
+      "snapshot": {
+        "snapshot_id": "snapshot.method.hrv_transform_context.2026_05_31",
+        "retrieved_at": "2026-05-31",
+        "digest": "doi:10.3389/fpsyg.2017.00213"
+      }
     },
     {
       "source_id": "source.method.rmssd_gain",
@@ -78,25 +103,35 @@
       "citation": {
         "label": "The effect of a single-session heart rate variability biofeedback on attentional control: does stress matter?",
         "doi": "10.3389/fpsyg.2023.1292983",
-        "url": "https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2023.1292983/pdf"
+        "url": "https://doi.org/10.3389/fpsyg.2023.1292983"
       },
       "claim_scope": [
         "claim.processor.rmssd_gain"
       ],
-      "copy_policy": "cite_and_rederive"
+      "copy_policy": "cite_and_rederive",
+      "snapshot": {
+        "snapshot_id": "snapshot.method.rmssd_gain.2026_05_31",
+        "retrieved_at": "2026-05-31",
+        "digest": "doi:10.3389/fpsyg.2023.1292983"
+      }
     },
     {
       "source_id": "source.method.coherence_ratio",
       "source_kind": "method_reference",
       "citation": {
-        "label": "The Coherent Heart, Institute of HeartMath, 2006",
+        "label": "HeartMath coherence scoring method reference",
         "doi": null,
-        "url": null
+        "url": "https://help.heartmath.com/emwave-pro/how-is-coherence-determined-by-heartmath-programs/"
       },
       "claim_scope": [
         "claim.processor.coherence"
       ],
-      "copy_policy": "cite_and_rederive"
+      "copy_policy": "cite_and_rederive",
+      "snapshot": {
+        "snapshot_id": "snapshot.method.coherence_ratio.2026_05_31",
+        "retrieved_at": "2026-05-31",
+        "digest": "url:https://help.heartmath.com/emwave-pro/how-is-coherence-determined-by-heartmath-programs/"
+      }
     },
     {
       "source_id": "source.method.hrvb_protocol_guidelines",
@@ -109,7 +144,12 @@
       "claim_scope": [
         "claim.processor.hrvb_resonance_amplitude"
       ],
-      "copy_policy": "cite_and_rederive"
+      "copy_policy": "cite_and_rederive",
+      "snapshot": {
+        "snapshot_id": "snapshot.method.hrvb_protocol_guidelines.2026_05_31",
+        "retrieved_at": "2026-05-31",
+        "digest": "doi:10.1007/s10484-023-09582-6"
+      }
     },
     {
       "source_id": "source.method.hrvb_resonance_mechanism",
@@ -117,12 +157,17 @@
       "citation": {
         "label": "Heart rate variability biofeedback: how and why does it work?",
         "doi": "10.3389/fpsyg.2014.00756",
-        "url": null
+        "url": "https://doi.org/10.3389/fpsyg.2014.00756"
       },
       "claim_scope": [
         "claim.processor.hrvb_resonance_amplitude"
       ],
-      "copy_policy": "cite_and_rederive"
+      "copy_policy": "cite_and_rederive",
+      "snapshot": {
+        "snapshot_id": "snapshot.method.hrvb_resonance_mechanism.2026_05_31",
+        "retrieved_at": "2026-05-31",
+        "digest": "doi:10.3389/fpsyg.2014.00756"
+      }
     },
     {
       "source_id": "source.method.hrvb_resonance_amplitude",
@@ -135,7 +180,12 @@
       "claim_scope": [
         "claim.processor.hrvb_resonance_amplitude"
       ],
-      "copy_policy": "cite_and_rederive"
+      "copy_policy": "cite_and_rederive",
+      "snapshot": {
+        "snapshot_id": "snapshot.method.hrvb_resonance_amplitude.2026_05_31",
+        "retrieved_at": "2026-05-31",
+        "digest": "doi:10.1111/psyp.14533"
+      }
     },
     {
       "source_id": "source.method.breathing_dynamics",
@@ -143,12 +193,17 @@
       "citation": {
         "label": "It's About Time: Breathing Dynamics Modulate Emotion and Cognition",
         "doi": "10.1111/psyp.70149",
-        "url": null
+        "url": "https://doi.org/10.1111/psyp.70149"
       },
       "claim_scope": [
         "claim.processor.breath_dynamics"
       ],
-      "copy_policy": "cite_and_rederive_with_input_boundary"
+      "copy_policy": "cite_and_rederive_with_input_boundary",
+      "snapshot": {
+        "snapshot_id": "snapshot.method.breathing_dynamics.2026_05_31",
+        "retrieved_at": "2026-05-31",
+        "digest": "doi:10.1111/psyp.70149"
+      }
     },
     {
       "source_id": "source.method.sample_entropy",
@@ -156,12 +211,17 @@
       "citation": {
         "label": "Physiological time-series analysis using approximate entropy and sample entropy",
         "doi": "10.1152/ajpheart.2000.278.6.H2039",
-        "url": null
+        "url": "https://doi.org/10.1152/ajpheart.2000.278.6.H2039"
       },
       "claim_scope": [
         "claim.processor.breath_dynamics"
       ],
-      "copy_policy": "cite_and_rederive_with_input_boundary"
+      "copy_policy": "cite_and_rederive_with_input_boundary",
+      "snapshot": {
+        "snapshot_id": "snapshot.method.sample_entropy.2026_05_31",
+        "retrieved_at": "2026-05-31",
+        "digest": "doi:10.1152/ajpheart.2000.278.6.H2039"
+      }
     },
     {
       "source_id": "source.method.multiscale_entropy",
@@ -169,12 +229,17 @@
       "citation": {
         "label": "Multiscale entropy analysis of complex physiologic time series",
         "doi": "10.1103/PhysRevLett.89.068102",
-        "url": null
+        "url": "https://doi.org/10.1103/PhysRevLett.89.068102"
       },
       "claim_scope": [
         "claim.processor.breath_dynamics"
       ],
-      "copy_policy": "cite_and_rederive_with_input_boundary"
+      "copy_policy": "cite_and_rederive_with_input_boundary",
+      "snapshot": {
+        "snapshot_id": "snapshot.method.multiscale_entropy.2026_05_31",
+        "retrieved_at": "2026-05-31",
+        "digest": "doi:10.1103/PhysRevLett.89.068102"
+      }
     },
     {
       "source_id": "source.method.lempel_ziv_complexity",
@@ -182,12 +247,17 @@
       "citation": {
         "label": "On the Complexity of Finite Sequences",
         "doi": "10.1109/TIT.1976.1055501",
-        "url": null
+        "url": "https://doi.org/10.1109/TIT.1976.1055501"
       },
       "claim_scope": [
         "claim.processor.breath_dynamics"
       ],
-      "copy_policy": "cite_and_rederive_with_input_boundary"
+      "copy_policy": "cite_and_rederive_with_input_boundary",
+      "snapshot": {
+        "snapshot_id": "snapshot.method.lempel_ziv_complexity.2026_05_31",
+        "retrieved_at": "2026-05-31",
+        "digest": "doi:10.1109/TIT.1976.1055501"
+      }
     },
     {
       "source_id": "source.method.acc_breath_proxy",
@@ -195,12 +265,17 @@
       "citation": {
         "label": "Package-defined accelerometer breathing proxy",
         "doi": null,
-        "url": null
+        "url": "package://package.polar_h10/docs/breath-volume-from-acc.md"
       },
       "claim_scope": [
         "claim.processor.breath_volume_proxy"
       ],
-      "copy_policy": "document_as_package_specific_approximation"
+      "copy_policy": "document_as_package_specific_approximation",
+      "snapshot": {
+        "snapshot_id": "snapshot.method.acc_breath_proxy.2026_05_31",
+        "retrieved_at": "2026-05-31",
+        "digest": "package://package.polar_h10/docs/breath-volume-from-acc.md"
+      }
     }
   ],
   "module_bindings": [
