@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const MODULE_PROVIDER: &str = "module.polar_h10.provider";
@@ -51,6 +52,8 @@ pub struct RuntimeInput {
     #[serde(default)]
     pub hr_rr: HrRrInput,
     #[serde(default)]
+    pub raw_acc: Option<AccBufferInput>,
+    #[serde(default)]
     pub rmssd_gain_baseline: Option<RmssdBaseline>,
     #[serde(default)]
     pub coherence_uniform: Option<CoherenceFixtureInput>,
@@ -68,6 +71,25 @@ pub struct HrRrInput {
     pub rr_intervals_ms: Vec<f64>,
     #[serde(default)]
     pub heart_rate_event_count: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AccBufferInput {
+    pub sample_rate_hz: f64,
+    pub frames: Vec<AccFrameInput>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AccFrameInput {
+    pub sensor_timestamp_ns: u64,
+    pub samples_mg: Vec<AccSampleInput>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AccSampleInput {
+    pub x_mg: f64,
+    pub y_mg: f64,
+    pub z_mg: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -164,6 +186,10 @@ pub struct Coherence {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BreathVolume {
+    pub input_acc_sample_count: u64,
+    pub source_sample_rate_hz: f64,
+    pub calibration_sample_count: u64,
+    pub projection_axis: String,
     pub lower_bound: f64,
     pub upper_bound: f64,
     pub breath_volume_01: f64,
@@ -260,6 +286,20 @@ struct RuntimeBuffers {
     breath_volume: Option<BreathVolume>,
 }
 
+#[derive(Debug, Clone)]
+struct BreathProxySeries {
+    sample_count: u64,
+    source_sample_rate_hz: f64,
+    calibration_sample_count: u64,
+    projection_axis: String,
+    lower_bound: f64,
+    upper_bound: f64,
+    times_seconds: Vec<f64>,
+    values_01: Vec<f64>,
+    confidence: f64,
+    quality: String,
+}
+
 pub fn compute_hrv_window(rr_intervals_ms: &[f64]) -> ProcessorResult<HrvWindow> {
     let mut accepted = Vec::new();
     let mut rejected_count = 0_u64;
@@ -332,7 +372,62 @@ pub fn compute_coherence(
         return Err(ProcessorFailure::new("issue.window_underfilled"));
     }
     let samples = synthesize_rr_window(fft_length, input)?;
-    let centered = center_samples(&samples);
+    compute_coherence_uniform(&samples, sample_rate_hz)
+}
+
+pub fn compute_coherence_from_rr(rr_intervals_ms: &[f64]) -> ProcessorResult<Coherence> {
+    let usable_rr = usable_rr(rr_intervals_ms);
+    if usable_rr.len() < 12 {
+        return Err(ProcessorFailure::new("issue.window_underfilled"));
+    }
+
+    let mut elapsed = 0.0;
+    let mut beat_times = Vec::with_capacity(usable_rr.len());
+    for rr_ms in &usable_rr {
+        elapsed += rr_ms / 1000.0;
+        beat_times.push(elapsed);
+    }
+    if elapsed < 64.0 {
+        return Err(ProcessorFailure::new("issue.window_underfilled"));
+    }
+
+    let window_start = elapsed - 64.0;
+    if beat_times.first().copied().unwrap_or_default() > window_start {
+        return Err(ProcessorFailure::new("issue.window_underfilled"));
+    }
+
+    let mut samples = Vec::with_capacity(128);
+    let mut beat_index = 0_usize;
+    for sample_index in 0..128 {
+        let sample_time = window_start + sample_index as f64 / 2.0;
+        while beat_index + 1 < beat_times.len() && beat_times[beat_index + 1] < sample_time {
+            beat_index += 1;
+        }
+        if beat_index + 1 >= beat_times.len() {
+            break;
+        }
+        let left_time = beat_times[beat_index];
+        let right_time = beat_times[beat_index + 1];
+        let left_rr = usable_rr[beat_index];
+        let right_rr = usable_rr[beat_index + 1];
+        if right_time <= left_time {
+            samples.push(left_rr);
+        } else {
+            let fraction = (sample_time - left_time) / (right_time - left_time);
+            samples.push(left_rr + (right_rr - left_rr) * fraction);
+        }
+    }
+    if samples.len() < 128 {
+        return Err(ProcessorFailure::new("issue.window_underfilled"));
+    }
+    compute_coherence_uniform(&samples, 2.0)
+}
+
+fn compute_coherence_uniform(samples: &[f64], sample_rate_hz: f64) -> ProcessorResult<Coherence> {
+    if samples.is_empty() {
+        return Err(ProcessorFailure::new("issue.window_underfilled"));
+    }
+    let centered = center_samples(samples);
     let powers = dft_power_by_bin(&centered, sample_rate_hz);
 
     let total_band_power: f64 = powers
@@ -423,6 +518,10 @@ pub fn compute_breath_volume(input: &BreathVolumeFixtureInput) -> ProcessorResul
     );
     let previous = input.previous_projection.unwrap_or(input.live_projection);
     Ok(BreathVolume {
+        input_acc_sample_count: input.calibration_projection.len() as u64,
+        source_sample_rate_hz: 200.0,
+        calibration_sample_count: input.calibration_projection.len() as u64,
+        projection_axis: "fixture_projection".to_string(),
         lower_bound,
         upper_bound,
         breath_volume_01: normalized,
@@ -433,6 +532,37 @@ pub fn compute_breath_volume(input: &BreathVolumeFixtureInput) -> ProcessorResul
         },
         confidence: 1.0,
         quality: "stable".to_string(),
+    })
+}
+
+pub fn compute_breath_volume_from_acc(input: &AccBufferInput) -> ProcessorResult<BreathVolume> {
+    let series = breath_proxy_series(input)?;
+    let latest = *series
+        .values_01
+        .last()
+        .ok_or_else(|| ProcessorFailure::new("issue.calibration_underfilled"))?;
+    let previous = series
+        .values_01
+        .iter()
+        .rev()
+        .nth(1)
+        .copied()
+        .unwrap_or(latest);
+    Ok(BreathVolume {
+        input_acc_sample_count: series.sample_count,
+        source_sample_rate_hz: series.source_sample_rate_hz,
+        calibration_sample_count: series.calibration_sample_count,
+        projection_axis: series.projection_axis,
+        lower_bound: series.lower_bound,
+        upper_bound: series.upper_bound,
+        breath_volume_01: latest,
+        phase: if latest >= previous {
+            "inhale".to_string()
+        } else {
+            "exhale".to_string()
+        },
+        confidence: series.confidence,
+        quality: series.quality,
     })
 }
 
@@ -448,6 +578,85 @@ pub fn compute_breath_dynamics(
     let amplitude_sd = sample_sd(&input.breath_amplitudes_01);
     Ok(BreathDynamics {
         cycle_count: input.breath_intervals_s.len() as u64,
+        mean_interval_s: mean_interval,
+        breathing_rate_bpm: 60.0 / mean_interval,
+        interval_sd_s: interval_sd,
+        interval_cv: interval_sd / mean_interval,
+        mean_amplitude_01: mean_amplitude,
+        amplitude_sd_01: amplitude_sd,
+        amplitude_cv: amplitude_sd / mean_amplitude,
+        complexity_status: "underfilled".to_string(),
+        quality: "stable".to_string(),
+    })
+}
+
+pub fn compute_breath_dynamics_from_acc(input: &AccBufferInput) -> ProcessorResult<BreathDynamics> {
+    let series = breath_proxy_series(input)?;
+    let downsampled = downsample_series(&series.times_seconds, &series.values_01, 10.0);
+    if downsampled.len() < 30 {
+        return Err(ProcessorFailure::new("issue.window_underfilled"));
+    }
+    let times = downsampled
+        .iter()
+        .map(|(time_s, _)| *time_s)
+        .collect::<Vec<_>>();
+    let smoothed = moving_average(
+        &downsampled
+            .iter()
+            .map(|(_, value)| *value)
+            .collect::<Vec<_>>(),
+        5,
+    );
+    let midpoint = median(&smoothed);
+    let mut crossings = Vec::new();
+    for index in 1..smoothed.len() {
+        let left = smoothed[index - 1] - midpoint;
+        let right = smoothed[index] - midpoint;
+        if left < 0.0 && right >= 0.0 {
+            let span = right - left;
+            let fraction = if span == 0.0 { 0.0 } else { -left / span };
+            crossings.push(times[index - 1] + (times[index] - times[index - 1]) * fraction);
+        }
+    }
+
+    let mut intervals = Vec::new();
+    for window in crossings.windows(2) {
+        let interval = window[1] - window[0];
+        if (1.5..=12.0).contains(&interval) {
+            intervals.push(interval);
+        }
+    }
+    let mut amplitudes = Vec::new();
+    for window in crossings.windows(2) {
+        let start = window[0];
+        let end = window[1];
+        let values = times
+            .iter()
+            .zip(smoothed.iter())
+            .filter_map(|(time_s, value)| {
+                if start <= *time_s && *time_s <= end {
+                    Some(*value)
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+        if !values.is_empty() {
+            let min_value = values.iter().copied().fold(f64::INFINITY, f64::min);
+            let max_value = values.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+            amplitudes.push(max_value - min_value);
+        }
+    }
+    if intervals.len() < 2 || amplitudes.len() < 2 {
+        return Err(ProcessorFailure::new("issue.window_underfilled"));
+    }
+
+    let mean_interval = mean(&intervals);
+    let interval_sd = sample_sd(&intervals);
+    let mean_amplitude = mean(&amplitudes);
+    let amplitude_sd = sample_sd(&amplitudes);
+    Ok(BreathDynamics {
+        cycle_count: intervals.len() as u64,
         mean_interval_s: mean_interval,
         breathing_rate_bpm: 60.0 / mean_interval,
         interval_sd_s: interval_sd,
@@ -478,6 +687,83 @@ pub fn compute_hrvb_resonance_amplitude(
         phase_rad: generator.phase_rad,
         median_session_amplitude_bpm: generator.amplitude_bpm,
         threshold_status: if generator.amplitude_bpm >= 2.0 {
+            "above_source_threshold".to_string()
+        } else {
+            "below_source_threshold".to_string()
+        },
+        quality: "stable".to_string(),
+    })
+}
+
+pub fn compute_hrvb_resonance_amplitude_from_rr(
+    rr_intervals_ms: &[f64],
+) -> ProcessorResult<HrvbResonanceAmplitude> {
+    let usable = usable_rr(rr_intervals_ms);
+    if usable.len() < 30 {
+        return Err(ProcessorFailure::new("issue.window_underfilled"));
+    }
+    let mut elapsed = 0.0;
+    let mut samples = Vec::with_capacity(usable.len());
+    for rr_ms in &usable {
+        elapsed += rr_ms / 1000.0;
+        samples.push((elapsed, 60000.0 / rr_ms));
+    }
+    if elapsed < 30.0 {
+        return Err(ProcessorFailure::new("issue.window_underfilled"));
+    }
+    let window_start = elapsed - 30.0;
+    let window = samples
+        .iter()
+        .filter_map(|(time_s, hr)| {
+            if *time_s >= window_start {
+                Some((*time_s - window_start, *hr))
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+    if window.len() < 20 {
+        return Err(ProcessorFailure::new("issue.window_underfilled"));
+    }
+
+    let mean_hr = mean(&window.iter().map(|(_, hr)| *hr).collect::<Vec<_>>());
+    let mut best_frequency = None;
+    let mut best_amplitude = -1.0;
+    let mut best_phase = None;
+    for step in 0..=40 {
+        let frequency = 0.08 + step as f64 * 0.001;
+        let omega = 2.0 * std::f64::consts::PI * frequency;
+        let mut sin_projection = 0.0;
+        let mut cos_projection = 0.0;
+        for (time_s, hr) in &window {
+            let centered = hr - mean_hr;
+            sin_projection += centered * (omega * time_s).sin();
+            cos_projection += centered * (omega * time_s).cos();
+        }
+        sin_projection *= 2.0 / window.len() as f64;
+        cos_projection *= 2.0 / window.len() as f64;
+        let amplitude =
+            ((sin_projection * sin_projection) + (cos_projection * cos_projection)).sqrt();
+        if amplitude > best_amplitude {
+            best_amplitude = amplitude;
+            best_frequency = Some(frequency);
+            best_phase = Some(cos_projection.atan2(sin_projection));
+        }
+    }
+    let Some(frequency_hz) = best_frequency else {
+        return Err(ProcessorFailure::new("issue.fit_not_converged"));
+    };
+    let Some(phase_rad) = best_phase else {
+        return Err(ProcessorFailure::new("issue.fit_not_converged"));
+    };
+    Ok(HrvbResonanceAmplitude {
+        amplitude_bpm: best_amplitude,
+        mean_hr_bpm: mean_hr,
+        frequency_hz,
+        omega_rad_s: 2.0 * std::f64::consts::PI * frequency_hz,
+        phase_rad,
+        median_session_amplitude_bpm: best_amplitude,
+        threshold_status: if best_amplitude >= 2.0 {
             "above_source_threshold".to_string()
         } else {
             "below_source_threshold".to_string()
@@ -636,16 +922,33 @@ fn execute_node(
     match module_id {
         MODULE_PROVIDER => {
             let rr_count = input.hr_rr.rr_intervals_ms.len() as u64;
+            let acc_sample_count = input
+                .raw_acc
+                .as_ref()
+                .map(raw_acc_sample_count)
+                .unwrap_or_default();
             let mut counts = BTreeMap::new();
             counts.insert("count.polar_h10.rr_intervals".to_string(), rr_count);
-            let stream = json!({
-                "stream_id": STREAM_HR_RR,
-                "status": if rr_count > 0 { "pass" } else { "fail" },
-                "heart_rate_event_count": input.hr_rr.heart_rate_event_count.unwrap_or(rr_count),
-                "rr_interval_count": rr_count,
-                "source": "runtime_input"
-            });
-            if rr_count > 0 {
+            counts.insert("count.polar_h10.acc_samples".to_string(), acc_sample_count);
+            let stream = if rr_count > 0 {
+                json!({
+                    "stream_id": STREAM_HR_RR,
+                    "status": "pass",
+                    "heart_rate_event_count": input.hr_rr.heart_rate_event_count.unwrap_or(rr_count),
+                    "rr_interval_count": rr_count,
+                    "source": "runtime_input"
+                })
+            } else {
+                json!({
+                    "stream_id": STREAM_ACC,
+                    "status": if acc_sample_count > 0 { "pass" } else { "fail" },
+                    "frame_count": input.raw_acc.as_ref().map(|acc| acc.frames.len()).unwrap_or_default(),
+                    "decoded_sample_count": acc_sample_count,
+                    "sensor_sample_rate_hz": input.raw_acc.as_ref().map(|acc| acc.sample_rate_hz),
+                    "source": "runtime_input"
+                })
+            };
+            if rr_count > 0 || acc_sample_count > 0 {
                 ("pass".to_string(), vec![], counts, Some(stream))
             } else {
                 (
@@ -709,14 +1012,12 @@ fn execute_node(
             }
         }
         MODULE_COHERENCE => {
-            let Some(coherence_input) = input.coherence_uniform.as_ref() else {
-                return failure_stream(
-                    STREAM_COHERENCE,
-                    module_id,
-                    ProcessorFailure::new("issue.input_stream_missing"),
-                );
+            let result = if let Some(coherence_input) = input.coherence_uniform.as_ref() {
+                compute_coherence(coherence_input, 2.0, 128)
+            } else {
+                compute_coherence_from_rr(&input.hr_rr.rr_intervals_ms)
             };
-            match compute_coherence(coherence_input, 2.0, 128) {
+            match result {
                 Ok(result) => {
                     let mut counts = BTreeMap::new();
                     counts.insert("count.polar_h10.coherence_uniform_samples".to_string(), 128);
@@ -738,29 +1039,32 @@ fn execute_node(
             }
         }
         MODULE_BREATH_VOLUME => {
-            let Some(breath_input) = input.breath_volume.as_ref() else {
-                return failure_stream(
-                    STREAM_BREATH_VOLUME,
-                    module_id,
-                    ProcessorFailure::new("issue.input_stream_missing"),
-                );
+            let (result, sample_count) = if let Some(breath_input) = input.breath_volume.as_ref() {
+                (
+                    compute_breath_volume(breath_input),
+                    breath_input.calibration_projection.len() as u64,
+                )
+            } else if let Some(acc_input) = input.raw_acc.as_ref() {
+                (
+                    compute_breath_volume_from_acc(acc_input),
+                    raw_acc_sample_count(acc_input),
+                )
+            } else {
+                (Err(ProcessorFailure::new("issue.input_stream_missing")), 0)
             };
-            match compute_breath_volume(breath_input) {
+            match result {
                 Ok(result) => {
                     buffers.breath_volume = Some(result.clone());
                     let mut counts = BTreeMap::new();
                     counts.insert(
                         "count.polar_h10.breath_calibration_samples".to_string(),
-                        breath_input.calibration_projection.len() as u64,
+                        result.calibration_sample_count,
                     );
                     (
                         "pass".to_string(),
                         vec![],
                         counts,
-                        Some(breath_volume_stream(
-                            result,
-                            breath_input.calibration_projection.len() as u64,
-                        )),
+                        Some(breath_volume_stream(result, sample_count)),
                     )
                 }
                 Err(failure) => failure_stream(STREAM_BREATH_VOLUME, module_id, failure),
@@ -774,14 +1078,21 @@ fn execute_node(
                     ProcessorFailure::new("issue.dependency_missing"),
                 );
             }
-            let Some(dynamics_input) = input.breath_dynamics.as_ref() else {
-                return failure_stream(
-                    STREAM_BREATH_DYNAMICS,
-                    module_id,
-                    ProcessorFailure::new("issue.input_stream_missing"),
-                );
-            };
-            match compute_breath_dynamics(dynamics_input) {
+            let (result, input_breath_sample_count) =
+                if let Some(dynamics_input) = input.breath_dynamics.as_ref() {
+                    (
+                        compute_breath_dynamics(dynamics_input),
+                        dynamics_input.breath_intervals_s.len() as u64,
+                    )
+                } else if let Some(acc_input) = input.raw_acc.as_ref() {
+                    (
+                        compute_breath_dynamics_from_acc(acc_input),
+                        raw_acc_sample_count(acc_input),
+                    )
+                } else {
+                    (Err(ProcessorFailure::new("issue.input_stream_missing")), 0)
+                };
+            match result {
                 Ok(result) => {
                     let mut counts = BTreeMap::new();
                     counts.insert(
@@ -792,35 +1103,34 @@ fn execute_node(
                         "pass".to_string(),
                         vec![],
                         counts,
-                        Some(breath_dynamics_stream(
-                            result,
-                            dynamics_input.breath_intervals_s.len() as u64,
-                        )),
+                        Some(breath_dynamics_stream(result, input_breath_sample_count)),
                     )
                 }
                 Err(failure) => failure_stream(STREAM_BREATH_DYNAMICS, module_id, failure),
             }
         }
         MODULE_HRVB_AMPLITUDE => {
-            let Some(hrvb_input) = input.hrvb_resonance_amplitude.as_ref() else {
-                return failure_stream(
-                    STREAM_HRVB_AMPLITUDE,
-                    module_id,
-                    ProcessorFailure::new("issue.input_stream_missing"),
-                );
-            };
-            match compute_hrvb_resonance_amplitude(hrvb_input) {
+            let (result, sample_count) =
+                if let Some(hrvb_input) = input.hrvb_resonance_amplitude.as_ref() {
+                    (
+                        compute_hrvb_resonance_amplitude(hrvb_input),
+                        hrvb_input.generator.sample_count,
+                    )
+                } else {
+                    (
+                        compute_hrvb_resonance_amplitude_from_rr(&input.hr_rr.rr_intervals_ms),
+                        usable_rr(&input.hr_rr.rr_intervals_ms).len() as u64,
+                    )
+                };
+            match result {
                 Ok(result) => {
                     let mut counts = BTreeMap::new();
-                    counts.insert(
-                        "count.polar_h10.hrvb_samples".to_string(),
-                        hrvb_input.generator.sample_count,
-                    );
+                    counts.insert("count.polar_h10.hrvb_samples".to_string(), sample_count);
                     (
                         "pass".to_string(),
                         vec![],
                         counts,
-                        Some(hrvb_stream(result, hrvb_input.generator.sample_count)),
+                        Some(hrvb_stream(result, sample_count)),
                     )
                 }
                 Err(failure) => failure_stream(STREAM_HRVB_AMPLITUDE, module_id, failure),
@@ -913,16 +1223,17 @@ fn coherence_stream(
     })
 }
 
-fn breath_volume_stream(result: BreathVolume, calibration_count: u64) -> Value {
+fn breath_volume_stream(result: BreathVolume, input_acc_sample_count: u64) -> Value {
     json!({
         "stream_id": STREAM_BREATH_VOLUME,
         "module_id": MODULE_BREATH_VOLUME,
         "status": "pass",
         "input_stream_id": STREAM_ACC,
         "method": "acc_projection_proxy_v1",
-        "input_acc_sample_count": calibration_count,
-        "source_sample_rate_hz": 200.0,
-        "calibration_sample_count": calibration_count,
+        "input_acc_sample_count": input_acc_sample_count,
+        "source_sample_rate_hz": result.source_sample_rate_hz,
+        "calibration_sample_count": result.calibration_sample_count,
+        "projection_axis": result.projection_axis,
         "lower_bound": result.lower_bound,
         "upper_bound": result.upper_bound,
         "breath_volume_01": result.breath_volume_01,
@@ -1120,6 +1431,163 @@ fn in_band(frequency: f64, band: (f64, f64)) -> bool {
 
 fn clamp(value: f64, lower: f64, upper: f64) -> f64 {
     value.max(lower).min(upper)
+}
+
+fn usable_rr(rr_intervals_ms: &[f64]) -> Vec<f64> {
+    rr_intervals_ms
+        .iter()
+        .copied()
+        .filter(|value| (300.0..=2000.0).contains(value))
+        .collect()
+}
+
+fn raw_acc_sample_count(input: &AccBufferInput) -> u64 {
+    input
+        .frames
+        .iter()
+        .map(|frame| frame.samples_mg.len() as u64)
+        .sum()
+}
+
+fn breath_proxy_series(input: &AccBufferInput) -> ProcessorResult<BreathProxySeries> {
+    let sample_rate_hz = input.sample_rate_hz.max(1.0);
+    let sample_period = 1.0 / sample_rate_hz;
+    let sample_count = raw_acc_sample_count(input);
+    if sample_count < 20 || sample_count < (sample_rate_hz / 2.0).floor() as u64 {
+        return Err(ProcessorFailure::new("issue.calibration_underfilled"));
+    }
+
+    let mut samples = Vec::with_capacity(sample_count as usize);
+    for frame in &input.frames {
+        let frame_start = frame.sensor_timestamp_ns as f64 / 1_000_000_000.0;
+        for (index, sample) in frame.samples_mg.iter().enumerate() {
+            samples.push((
+                frame_start + index as f64 * sample_period,
+                sample.x_mg,
+                sample.y_mg,
+                sample.z_mg,
+            ));
+        }
+    }
+    if samples.is_empty() {
+        return Err(ProcessorFailure::new("issue.calibration_underfilled"));
+    }
+
+    let first_time = samples[0].0;
+    let times_seconds = samples
+        .iter()
+        .map(|(time_s, _, _, _)| time_s - first_time)
+        .collect::<Vec<_>>();
+    let axes = [
+        (
+            "x",
+            samples.iter().map(|(_, x, _, _)| *x).collect::<Vec<_>>(),
+        ),
+        (
+            "y",
+            samples.iter().map(|(_, _, y, _)| *y).collect::<Vec<_>>(),
+        ),
+        (
+            "z",
+            samples.iter().map(|(_, _, _, z)| *z).collect::<Vec<_>>(),
+        ),
+    ];
+    let mut best_axis = "x";
+    let mut best_values = axes[0].1.clone();
+    let mut best_span = f64::NEG_INFINITY;
+    for (axis, values) in axes {
+        let span = quantile(&values, 0.95) - quantile(&values, 0.05);
+        if span > best_span {
+            best_axis = axis;
+            best_values = values;
+            best_span = span;
+        }
+    }
+    let lower_bound = quantile(&best_values, 0.05);
+    let upper_bound = quantile(&best_values, 0.95);
+    if upper_bound - lower_bound <= 0.000_001 {
+        return Err(ProcessorFailure::new("issue.calibration_invalid"));
+    }
+    let values_01 = best_values
+        .iter()
+        .map(|value| {
+            clamp(
+                (value - lower_bound) / (upper_bound - lower_bound),
+                0.0,
+                1.0,
+            )
+        })
+        .collect::<Vec<_>>();
+    let confidence = clamp((upper_bound - lower_bound) / 80.0, 0.0, 1.0);
+    Ok(BreathProxySeries {
+        sample_count,
+        source_sample_rate_hz: sample_rate_hz,
+        calibration_sample_count: sample_count,
+        projection_axis: best_axis.to_string(),
+        lower_bound,
+        upper_bound,
+        times_seconds,
+        values_01,
+        confidence,
+        quality: if confidence >= 0.2 {
+            "stable".to_string()
+        } else {
+            "low_motion".to_string()
+        },
+    })
+}
+
+fn quantile(values: &[f64], fraction: f64) -> f64 {
+    if values.is_empty() {
+        return 0.0;
+    }
+    let mut ordered = values.to_vec();
+    ordered.sort_by(|left, right| left.partial_cmp(right).unwrap_or(Ordering::Equal));
+    if ordered.len() == 1 {
+        return ordered[0];
+    }
+    let position = clamp(fraction, 0.0, 1.0) * (ordered.len() - 1) as f64;
+    let lower = position.floor() as usize;
+    let upper = position.ceil() as usize;
+    if lower == upper {
+        return ordered[lower];
+    }
+    let weight = position - lower as f64;
+    ordered[lower] + (ordered[upper] - ordered[lower]) * weight
+}
+
+fn median(values: &[f64]) -> f64 {
+    quantile(values, 0.5)
+}
+
+fn downsample_series(times: &[f64], values: &[f64], rate_hz: f64) -> Vec<(f64, f64)> {
+    let mut buckets: BTreeMap<u64, (f64, u64)> = BTreeMap::new();
+    for (time_s, value) in times.iter().zip(values.iter()) {
+        let bucket = (time_s * rate_hz).floor().max(0.0) as u64;
+        let entry = buckets.entry(bucket).or_insert((0.0, 0));
+        entry.0 += value;
+        entry.1 += 1;
+    }
+    buckets
+        .into_iter()
+        .filter_map(|(bucket, (sum, count))| {
+            if count == 0 {
+                None
+            } else {
+                Some((bucket as f64 / rate_hz, sum / count as f64))
+            }
+        })
+        .collect()
+}
+
+fn moving_average(values: &[f64], radius: usize) -> Vec<f64> {
+    let mut smoothed = Vec::with_capacity(values.len());
+    for index in 0..values.len() {
+        let start = index.saturating_sub(radius);
+        let end = (index + radius + 1).min(values.len());
+        smoothed.push(mean(&values[start..end]));
+    }
+    smoothed
 }
 
 fn default_baseline_source() -> String {
@@ -1383,5 +1851,105 @@ mod tests {
             .streams
             .iter()
             .any(|stream| stream["stream_id"] == STREAM_BREATH_DYNAMICS));
+    }
+
+    #[test]
+    fn live_rr_buffer_runs_coherence_and_hrvb() {
+        let graph: GraphManifest =
+            serde_json::from_str(include_str!("../../../fixtures/valid/graph.json")).unwrap();
+        let input = RuntimeInput {
+            input_id: Some("input.test.live_rr_buffer".to_string()),
+            hr_rr: HrRrInput {
+                rr_intervals_ms: synthetic_rr_intervals(96),
+                heart_rate_event_count: Some(96),
+            },
+            raw_acc: None,
+            rmssd_gain_baseline: None,
+            coherence_uniform: None,
+            breath_volume: None,
+            breath_dynamics: None,
+            hrvb_resonance_amplitude: None,
+        };
+        let report = run_graph(
+            &graph,
+            &input,
+            &[
+                MODULE_COHERENCE.to_string(),
+                MODULE_HRVB_AMPLITUDE.to_string(),
+            ],
+        );
+        assert_eq!(report.status, "pass", "{:#?}", report.issues);
+        assert!(report
+            .streams
+            .iter()
+            .any(|stream| stream["stream_id"] == STREAM_COHERENCE));
+        assert!(report
+            .streams
+            .iter()
+            .any(|stream| stream["stream_id"] == STREAM_HRVB_AMPLITUDE));
+    }
+
+    #[test]
+    fn live_acc_buffer_runs_breath_modules() {
+        let graph: GraphManifest =
+            serde_json::from_str(include_str!("../../../fixtures/valid/graph.json")).unwrap();
+        let input = RuntimeInput {
+            input_id: Some("input.test.live_acc_buffer".to_string()),
+            hr_rr: HrRrInput::default(),
+            raw_acc: Some(synthetic_acc_buffer()),
+            rmssd_gain_baseline: None,
+            coherence_uniform: None,
+            breath_volume: None,
+            breath_dynamics: None,
+            hrvb_resonance_amplitude: None,
+        };
+        let report = run_graph(&graph, &input, &[MODULE_BREATH_DYNAMICS.to_string()]);
+        assert_eq!(report.status, "pass", "{:#?}", report.issues);
+        assert!(report
+            .streams
+            .iter()
+            .any(|stream| stream["stream_id"] == STREAM_BREATH_VOLUME));
+        assert!(report
+            .streams
+            .iter()
+            .any(|stream| stream["stream_id"] == STREAM_BREATH_DYNAMICS));
+    }
+
+    fn synthetic_rr_intervals(count: usize) -> Vec<f64> {
+        (0..count)
+            .map(|index| {
+                let phase = 2.0 * std::f64::consts::PI * 0.1 * index as f64;
+                1000.0 - 45.0 * phase.sin()
+            })
+            .collect()
+    }
+
+    fn synthetic_acc_buffer() -> AccBufferInput {
+        let sample_rate_hz = 50.0;
+        let frame_size = 10;
+        let frame_count = 100;
+        let mut frames = Vec::new();
+        for frame_index in 0..frame_count {
+            let mut samples_mg = Vec::new();
+            for sample_index in 0..frame_size {
+                let absolute_sample = frame_index * frame_size + sample_index;
+                let time_s = absolute_sample as f64 / sample_rate_hz;
+                let phase = 2.0 * std::f64::consts::PI * 0.25 * time_s;
+                samples_mg.push(AccSampleInput {
+                    x_mg: 100.0 * phase.sin(),
+                    y_mg: 8.0 * (phase * 0.5).sin(),
+                    z_mg: 2.0,
+                });
+            }
+            frames.push(AccFrameInput {
+                sensor_timestamp_ns: ((frame_index * frame_size) as f64 / sample_rate_hz
+                    * 1_000_000_000.0) as u64,
+                samples_mg,
+            });
+        }
+        AccBufferInput {
+            sample_rate_hz,
+            frames,
+        }
     }
 }
