@@ -1,0 +1,49 @@
+{
+  "$schema": "rusty.manifold.package.manifest.v1",
+  "package_id": "package.polar_h10",
+  "version": "0.1.0",
+  "license": "MIT OR Apache-2.0",
+  "exports": {
+    "modules": [
+      "module.polar_h10.provider",
+      "module.polar_h10.breath_volume_from_acc",
+      "module.polar_h10.hrv_window",
+      "module.polar_h10.coherence",
+      "module.polar_h10.breath_dynamics"
+    ],
+    "streams": [
+      "stream.polar_h10.hr_rr",
+      "stream.polar_h10.ecg",
+      "stream.polar_h10.acc",
+      "stream.polar_h10.device_status",
+      "stream.polar_h10.backend_health",
+      "stream.polar_h10.breath_volume",
+      "stream.polar_h10.hrv_window",
+      "stream.polar_h10.coherence",
+      "stream.polar_h10.breath_dynamics"
+    ],
+    "commands": [
+      "command.polar_h10.scan",
+      "command.polar_h10.connect",
+      "command.polar_h10.configure",
+      "command.polar_h10.stream_start",
+      "command.polar_h10.stream_stop",
+      "command.polar_h10.disconnect",
+      "command.polar_h10.processor_calibrate",
+      "command.polar_h10.processor_reset"
+    ]
+  },
+  "validation_commands": [
+    {
+      "command_id": "validation.package_workspace",
+      "command": "python tools/check_packages.py --repo-root ."
+    }
+  ],
+  "safety": {
+    "uses_network": false,
+    "uses_subprocess": false,
+    "uses_native_code": false,
+    "uses_device_api": true,
+    "carries_binary_payloads": false
+  }
+}

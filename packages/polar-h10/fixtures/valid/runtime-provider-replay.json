@@ -1,0 +1,24 @@
+{
+  "$schema": "rusty.manifold.module.runtime_state.v1",
+  "module_id": "module.polar_h10.provider",
+  "runtime_revision": 1,
+  "lifecycle": "running",
+  "health": "healthy",
+  "selected_backend": "backend.replay",
+  "active_streams": [
+    "stream.polar_h10.hr_rr",
+    "stream.polar_h10.ecg",
+    "stream.polar_h10.acc",
+    "stream.polar_h10.device_status",
+    "stream.polar_h10.backend_health"
+  ],
+  "active_commands": [
+    "command.polar_h10.scan",
+    "command.polar_h10.connect",
+    "command.polar_h10.configure",
+    "command.polar_h10.stream_start",
+    "command.polar_h10.stream_stop",
+    "command.polar_h10.disconnect"
+  ],
+  "issues": []
+}

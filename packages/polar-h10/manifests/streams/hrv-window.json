@@ -1,0 +1,20 @@
+{
+  "$schema": "rusty.manifold.stream.manifest.v1",
+  "stream_id": "stream.polar_h10.hrv_window",
+  "source_module_id": "module.polar_h10.hrv_window",
+  "semantic_family": "beat.hrv_window",
+  "sample_schema": "rusty.manifold.sample.hrv_window.v1",
+  "rate_class": "periodic",
+  "timestamp_domains": [
+    "clock.host_monotonic"
+  ],
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "transport_offers": [],
+  "subscription": {
+    "ui_subscribable": true,
+    "max_subscribers": 8
+  }
+}

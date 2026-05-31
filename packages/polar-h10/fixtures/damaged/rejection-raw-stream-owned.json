@@ -1,0 +1,8 @@
+{
+  "$schema": "rusty.manifold.command.rejection.v1",
+  "request_id": "request.polar_h10.raw_stream_owned",
+  "rejection_code": "rejection.raw_stream_owned",
+  "message": "The requested raw stream is already owned by another session.",
+  "retryable": true,
+  "current_revision": 1
+}

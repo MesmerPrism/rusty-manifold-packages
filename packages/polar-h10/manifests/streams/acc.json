@@ -1,0 +1,21 @@
+{
+  "$schema": "rusty.manifold.stream.manifest.v1",
+  "stream_id": "stream.polar_h10.acc",
+  "source_module_id": "module.polar_h10.provider",
+  "semantic_family": "motion.accelerometer",
+  "sample_schema": "rusty.manifold.sample.acc_mg_frame.v1",
+  "rate_class": "burst",
+  "timestamp_domains": [
+    "clock.source_device",
+    "clock.host_monotonic"
+  ],
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "transport_offers": [],
+  "subscription": {
+    "ui_subscribable": false,
+    "max_subscribers": 1
+  }
+}

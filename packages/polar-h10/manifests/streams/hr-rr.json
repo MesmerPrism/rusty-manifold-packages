@@ -1,0 +1,21 @@
+{
+  "$schema": "rusty.manifold.stream.manifest.v1",
+  "stream_id": "stream.polar_h10.hr_rr",
+  "source_module_id": "module.polar_h10.provider",
+  "semantic_family": "biosignal.heart_rate",
+  "sample_schema": "rusty.manifold.sample.hr_rr.v1",
+  "rate_class": "event",
+  "timestamp_domains": [
+    "clock.source_device",
+    "clock.host_monotonic"
+  ],
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "transport_offers": [],
+  "subscription": {
+    "ui_subscribable": true,
+    "max_subscribers": 8
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "$schema": "rusty.manifold.graph.manifest.v1",
+  "graph_id": "graph.polar_h10_processing",
+  "graph_revision": 1,
+  "nodes": [
+    {
+      "node_id": "node.polar_h10_provider",
+      "module_id": "module.polar_h10.provider"
+    },
+    {
+      "node_id": "node.polar_h10_breath_volume",
+      "module_id": "module.polar_h10.breath_volume_from_acc"
+    },
+    {
+      "node_id": "node.polar_h10_hrv_window",
+      "module_id": "module.polar_h10.hrv_window"
+    },
+    {
+      "node_id": "node.polar_h10_coherence",
+      "module_id": "module.polar_h10.coherence"
+    },
+    {
+      "node_id": "node.polar_h10_breath_dynamics",
+      "module_id": "module.polar_h10.breath_dynamics"
+    }
+  ],
+  "edges": [
+    {
+      "edge_id": "edge.polar_h10_acc_to_breath_volume",
+      "source_node_id": "node.polar_h10_provider",
+      "source_stream_id": "stream.polar_h10.acc",
+      "target_node_id": "node.polar_h10_breath_volume",
+      "target_input_id": "stream.polar_h10.acc"
+    },
+    {
+      "edge_id": "edge.polar_h10_hr_rr_to_hrv",
+      "source_node_id": "node.polar_h10_provider",
+      "source_stream_id": "stream.polar_h10.hr_rr",
+      "target_node_id": "node.polar_h10_hrv_window",
+      "target_input_id": "stream.polar_h10.hr_rr"
+    },
+    {
+      "edge_id": "edge.polar_h10_hr_rr_to_coherence",
+      "source_node_id": "node.polar_h10_provider",
+      "source_stream_id": "stream.polar_h10.hr_rr",
+      "target_node_id": "node.polar_h10_coherence",
+      "target_input_id": "stream.polar_h10.hr_rr"
+    },
+    {
+      "edge_id": "edge.polar_h10_breath_volume_to_dynamics",
+      "source_node_id": "node.polar_h10_breath_volume",
+      "source_stream_id": "stream.polar_h10.breath_volume",
+      "target_node_id": "node.polar_h10_breath_dynamics",
+      "target_input_id": "stream.polar_h10.breath_volume"
+    }
+  ],
+  "required_capabilities": [
+    "manifold.graph.run",
+    "manifold.device.access"
+  ]
+}

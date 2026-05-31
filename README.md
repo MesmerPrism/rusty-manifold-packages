@@ -9,6 +9,8 @@ device APIs, or transport stacks.
 - `synthetic`: synthetic provider and processor package for contract tests.
 - `biosignal-sensor`: generic biosignal provider plus separate processing
   modules for derived streams.
+- `polar-h10`: public sensor package manifests and fixtures for provider,
+  processor, ownership, backend, and damaged-input contract readiness.
 
 ## Validation
 

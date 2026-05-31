@@ -1,0 +1,15 @@
+{
+  "$schema": "rusty.manifold.module.runtime_state.v1",
+  "module_id": "module.polar_h10.breath_dynamics",
+  "runtime_revision": 1,
+  "lifecycle": "running",
+  "health": "healthy",
+  "selected_backend": "backend.synthetic",
+  "active_streams": [
+    "stream.polar_h10.breath_dynamics"
+  ],
+  "active_commands": [
+    "command.polar_h10.processor_reset"
+  ],
+  "issues": []
+}

@@ -1,0 +1,10 @@
+{
+  "$schema": "rusty.manifold.command.descriptor.v1",
+  "command_id": "command.polar_h10.processor_calibrate",
+  "target_scope": "module.polar_h10.processor",
+  "input_schema": "rusty.manifold.command.input.processor_calibrate.v1",
+  "required_capability": "manifold.module.control",
+  "required_lease_scope": "module.polar_h10.processor",
+  "safety_class": "bounded_mutation",
+  "operator_confirmation_required": false
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "rusty.manifold.stream.manifest.v1",
+  "stream_id": "stream.polar_h10.backend_health",
+  "source_module_id": "module.polar_h10.provider",
+  "semantic_family": "backend.health",
+  "sample_schema": "rusty.manifold.sample.backend_health.v1",
+  "rate_class": "event",
+  "timestamp_domains": [
+    "clock.host_monotonic"
+  ],
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "internal",
+  "transport_offers": [],
+  "subscription": {
+    "ui_subscribable": true,
+    "max_subscribers": 8
+  }
+}

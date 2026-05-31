@@ -9,6 +9,10 @@
     {
       "package_id": "package.biosignal_sensor",
       "manifest_path": "packages/biosignal-sensor/manifests/package.manifold.json"
+    },
+    {
+      "package_id": "package.polar_h10",
+      "manifest_path": "packages/polar-h10/manifests/package.manifold.json"
     }
   ],
   "validation_commands": [

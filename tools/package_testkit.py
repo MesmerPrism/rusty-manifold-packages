@@ -11,7 +11,6 @@ from typing import Any
 
 ID_RE = re.compile(r"^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)*$")
 FORBIDDEN_TERMS = [
-    "polar",
     "quest",
     "rusty-xr",
     "broker",
@@ -63,6 +62,7 @@ class PackageBundle:
     deployments: list[dict[str, Any]]
     runtime_states: list[dict[str, Any]]
     scorecards: list[dict[str, Any]]
+    ownership_modes: list[dict[str, Any]]
     rejections: list[dict[str, Any]]
 
 
@@ -101,6 +101,9 @@ def load_packages(repo_root: Path, checks: list[Check]) -> list[PackageBundle]:
                     ),
                     scorecards=read_json_dir(
                         package_root / "fixtures/valid", glob_pattern="scorecard-*.json"
+                    ),
+                    ownership_modes=read_json_dir(
+                        package_root / "fixtures/valid", glob_pattern="ownership-*.json"
                     ),
                     rejections=read_json_dir(
                         package_root / "fixtures/damaged", glob_pattern="rejection-*.json"
@@ -194,6 +197,7 @@ def add_package_checks(package: PackageBundle, checks: list[Check]) -> None:
     validate_provider_processor_split(prefix, package, modules_by_id, checks)
     validate_rejection_fixtures(prefix, package, checks)
     validate_scorecards(prefix, package, checks)
+    validate_polar_readiness(prefix, package, modules_by_id, checks)
 
 
 def collect_ids(package: PackageBundle) -> dict[str, set[str]]:
@@ -398,12 +402,15 @@ def validate_provider_processor_split(
     for stream in package.streams:
         module = modules_by_id.get(stream["source_module_id"], {})
         stream_id = stream["stream_id"]
-        if module.get("module_kind") == "provider" and stream_id.startswith(
-            ("stream.breath.", "stream.beat.")
+        semantic = stream.get("semantic_family", "")
+        if module.get("module_kind") == "provider" and (
+            stream_id.startswith(("stream.breath.", "stream.beat."))
+            or semantic.startswith(("breath.", "beat."))
         ):
             misplaced.append(stream_id)
-        if module.get("module_kind") == "processor" and stream_id.startswith(
-            ("stream.biosignal.", "stream.motion.")
+        if module.get("module_kind") == "processor" and (
+            stream_id.startswith(("stream.biosignal.", "stream.motion."))
+            or semantic.startswith(("biosignal.", "motion.", "device.", "backend."))
         ):
             misplaced.append(stream_id)
     append_check(
@@ -425,15 +432,26 @@ def validate_rejection_fixtures(
         or not ID_RE.match(str(rejection.get("rejection_code", "")))
         or not isinstance(rejection.get("retryable"), bool)
     ]
-    if package.manifest.get("package_id") == "package.biosignal_sensor":
-        required = {
+    required_by_package = {
+        "package.biosignal_sensor": {
             "rejection.permission_missing",
             "rejection.source_busy",
             "rejection.unsupported_stream",
             "rejection.backend_missing",
             "rejection.timeout",
             "rejection.malformed_frame",
-        }
+        },
+        "package.polar_h10": {
+            "rejection.permission_missing",
+            "rejection.raw_stream_owned",
+            "rejection.unsupported_stream",
+            "rejection.backend_missing",
+            "rejection.timeout",
+            "rejection.malformed_frame",
+        },
+    }
+    required = required_by_package.get(str(package.manifest.get("package_id")))
+    if required:
         present = {rejection.get("rejection_code") for rejection in package.rejections}
         invalid += sorted(required - present)
     append_check(
@@ -452,14 +470,128 @@ def validate_scorecards(prefix: str, package: PackageBundle, checks: list[Check]
         for check in scorecard.get("checks", [])
         if not ID_RE.match(str(check.get("check_id", "")))
     ]
-    if package.manifest.get("package_id") == "package.biosignal_sensor" and not package.scorecards:
-        invalid.append("scorecard.biosignal_synthetic_contract")
+    required_scorecards = {
+        "package.biosignal_sensor": "scorecard.biosignal_synthetic_contract",
+        "package.polar_h10": "scorecard.polar_h10_readiness",
+    }
+    required_scorecard = required_scorecards.get(str(package.manifest.get("package_id")))
+    present_scorecards = {scorecard.get("scorecard_id") for scorecard in package.scorecards}
+    if required_scorecard and required_scorecard not in present_scorecards:
+        invalid.append(required_scorecard)
     append_check(
         checks,
         f"{prefix}.scorecards",
         not invalid,
         "scorecard fixtures are present and use dotted check ids",
         f"invalid scorecard rows: {invalid}",
+    )
+
+
+def validate_polar_readiness(
+    prefix: str,
+    package: PackageBundle,
+    modules_by_id: dict[str, dict[str, Any]],
+    checks: list[Check],
+) -> None:
+    if package.manifest.get("package_id") != "package.polar_h10":
+        return
+
+    module_ids = set(modules_by_id)
+    stream_by_id = {stream["stream_id"]: stream for stream in package.streams}
+    required_modules = {
+        "module.polar_h10.provider",
+        "module.polar_h10.breath_volume_from_acc",
+        "module.polar_h10.hrv_window",
+        "module.polar_h10.coherence",
+        "module.polar_h10.breath_dynamics",
+    }
+    append_check(
+        checks,
+        f"{prefix}.polar_modules",
+        required_modules.issubset(module_ids),
+        "Polar provider and processor modules are present",
+        f"missing modules: {sorted(required_modules - module_ids)}",
+    )
+
+    direct_streams = {
+        "stream.polar_h10.hr_rr",
+        "stream.polar_h10.ecg",
+        "stream.polar_h10.acc",
+    }
+    timestamp_missing: list[str] = []
+    for stream_id in sorted(direct_streams):
+        stream = stream_by_id.get(stream_id)
+        if stream is None:
+            timestamp_missing.append(stream_id)
+            continue
+        if stream.get("source_module_id") != "module.polar_h10.provider":
+            timestamp_missing.append(f"{stream_id}:source_module")
+        domains = set(stream.get("timestamp_domains", []))
+        if not {"clock.source_device", "clock.host_monotonic"}.issubset(domains):
+            timestamp_missing.append(f"{stream_id}:timestamp_domains")
+    append_check(
+        checks,
+        f"{prefix}.polar_direct_timestamps",
+        not timestamp_missing,
+        "Polar direct streams preserve source-device and host timestamp domains",
+        f"missing direct stream timestamp evidence: {timestamp_missing}",
+    )
+
+    ownership_modes = [
+        mode
+        for ownership_doc in package.ownership_modes
+        for mode in ownership_doc.get("modes", [])
+    ]
+    ownership_mode_ids = {mode.get("mode_id") for mode in ownership_modes}
+    required_ownership_modes = {
+        "ownership.raw_stream.single_owner",
+        "ownership.hr_rr.dual_receiver",
+        "ownership.raw_stream.two_sensor_compare",
+    }
+    raw_mode_errors: list[str] = []
+    for mode in ownership_modes:
+        if mode.get("mode_id") == "ownership.raw_stream.single_owner":
+            streams = set(mode.get("streams", []))
+            if not {"stream.polar_h10.ecg", "stream.polar_h10.acc"}.issubset(streams):
+                raw_mode_errors.append("ownership.raw_stream.single_owner:streams")
+            if mode.get("rejection_code") != "rejection.raw_stream_owned":
+                raw_mode_errors.append("ownership.raw_stream.single_owner:rejection_code")
+    ownership_missing = sorted(required_ownership_modes - ownership_mode_ids)
+    append_check(
+        checks,
+        f"{prefix}.polar_ownership_modes",
+        not ownership_missing and not raw_mode_errors,
+        "Polar raw ownership and HR/RR sharing modes are explicit",
+        f"ownership fixture issues: {ownership_missing + raw_mode_errors}",
+    )
+
+    provider = modules_by_id.get("module.polar_h10.provider", {})
+    required_backend_support = {
+        "backend.synthetic",
+        "backend.replay",
+        "backend.desktop_wireless",
+        "backend.mobile_wireless",
+        "backend.headset_wireless",
+    }
+    support = set(provider.get("platform_support", []))
+    deployment_backends = {
+        selection.get("backend_id")
+        for deployment in package.deployments
+        for selection in deployment.get("selected_backends", [])
+    }
+    runtime_backends = {state.get("selected_backend") for state in package.runtime_states}
+    fixture_backends = {"backend.synthetic", "backend.replay"}
+    backend_errors = sorted(required_backend_support - support)
+    backend_errors += [
+        f"deployment:{backend}" for backend in sorted(fixture_backends - deployment_backends)
+    ]
+    backend_errors += [f"runtime:{backend}" for backend in sorted(fixture_backends - runtime_backends)]
+    append_check(
+        checks,
+        f"{prefix}.polar_backend_evidence",
+        not backend_errors,
+        "Polar backend support plus synthetic and replay fixture evidence are present",
+        f"backend evidence issues: {backend_errors}",
     )
 
 

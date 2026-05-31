@@ -1,0 +1,39 @@
+{
+  "$schema": "rusty.manifold.deployment.manifest.v1",
+  "deployment_id": "deployment.polar_h10_replay",
+  "target_host_id": "host.replay",
+  "package_id": "package.polar_h10",
+  "selected_modules": [
+    "module.polar_h10.provider",
+    "module.polar_h10.breath_volume_from_acc",
+    "module.polar_h10.hrv_window",
+    "module.polar_h10.coherence",
+    "module.polar_h10.breath_dynamics"
+  ],
+  "selected_backends": [
+    {
+      "module_id": "module.polar_h10.provider",
+      "backend_id": "backend.replay"
+    },
+    {
+      "module_id": "module.polar_h10.breath_volume_from_acc",
+      "backend_id": "backend.replay"
+    },
+    {
+      "module_id": "module.polar_h10.hrv_window",
+      "backend_id": "backend.replay"
+    },
+    {
+      "module_id": "module.polar_h10.coherence",
+      "backend_id": "backend.replay"
+    },
+    {
+      "module_id": "module.polar_h10.breath_dynamics",
+      "backend_id": "backend.replay"
+    }
+  ],
+  "endpoint_id": "endpoint.control_loopback",
+  "security_policy": "policy.local_process_only",
+  "artifact_policy": "policy.no_artifacts",
+  "session_output_policy": "policy.session_summary_only"
+}

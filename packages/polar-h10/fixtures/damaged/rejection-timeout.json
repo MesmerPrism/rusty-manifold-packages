@@ -1,0 +1,8 @@
+{
+  "$schema": "rusty.manifold.command.rejection.v1",
+  "request_id": "request.polar_h10.timeout",
+  "rejection_code": "rejection.timeout",
+  "message": "The source did not become ready before the command deadline.",
+  "retryable": true,
+  "current_revision": 1
+}

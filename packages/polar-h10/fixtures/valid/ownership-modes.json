@@ -1,0 +1,43 @@
+{
+  "$schema": "rusty.manifold.ownership_modes.v1",
+  "target_id": "package.polar_h10",
+  "target_revision": 1,
+  "modes": [
+    {
+      "mode_id": "ownership.raw_stream.single_owner",
+      "streams": [
+        "stream.polar_h10.ecg",
+        "stream.polar_h10.acc"
+      ],
+      "owner_policy": "exclusive",
+      "max_active_owners": 1,
+      "allowed_owner_backends": [
+        "backend.desktop_wireless",
+        "backend.mobile_wireless",
+        "backend.headset_wireless"
+      ],
+      "rejection_code": "rejection.raw_stream_owned"
+    },
+    {
+      "mode_id": "ownership.hr_rr.dual_receiver",
+      "streams": [
+        "stream.polar_h10.hr_rr"
+      ],
+      "owner_policy": "shared_observer",
+      "max_active_owners": 2,
+      "raw_streams_enabled": false,
+      "rejection_code": "rejection.unsupported_stream"
+    },
+    {
+      "mode_id": "ownership.raw_stream.two_sensor_compare",
+      "streams": [
+        "stream.polar_h10.ecg",
+        "stream.polar_h10.acc"
+      ],
+      "owner_policy": "exclusive_per_source",
+      "required_source_count": 2,
+      "max_active_owners_per_source": 1,
+      "rejection_code": "rejection.raw_stream_owned"
+    }
+  ]
+}

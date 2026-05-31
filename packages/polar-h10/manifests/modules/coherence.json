@@ -1,0 +1,46 @@
+{
+  "$schema": "rusty.manifold.module.manifest.v1",
+  "module_id": "module.polar_h10.coherence",
+  "module_kind": "processor",
+  "label": "Polar H10 Coherence",
+  "version": "0.1.0",
+  "lifecycle_states": [
+    "available",
+    "running",
+    "degraded",
+    "stopped",
+    "failed"
+  ],
+  "provides_streams": [
+    "stream.polar_h10.coherence"
+  ],
+  "consumes_streams": [
+    "stream.polar_h10.hr_rr"
+  ],
+  "accepted_commands": [
+    "command.polar_h10.processor_reset"
+  ],
+  "required_capabilities": [
+    "manifold.module.control"
+  ],
+  "clock_policy": {
+    "source_domain": "clock.host_monotonic",
+    "correlation_required": true
+  },
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "platform_support": [
+    "backend.synthetic",
+    "backend.replay",
+    "backend.desktop_wireless",
+    "backend.mobile_wireless",
+    "backend.headset_wireless"
+  ],
+  "issue_codes": [
+    "issue.input_stream_missing",
+    "issue.window_underfilled",
+    "issue.quality_low"
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "$schema": "rusty.manifold.validation.scorecard.v1",
+  "scorecard_id": "scorecard.polar_h10_readiness",
+  "target_id": "package.polar_h10",
+  "target_revision": 1,
+  "status": "pass",
+  "checks": [
+    {
+      "check_id": "validation.check.polar_provider_processor_split",
+      "status": "pass",
+      "evidence": "Direct HR/RR, ECG, ACC, device status, and backend health streams stay on the provider; derived breath, HRV, and coherence streams stay on processors.",
+      "issue_codes": []
+    },
+    {
+      "check_id": "validation.check.polar_timestamp_domains",
+      "status": "pass",
+      "evidence": "Direct HR/RR, ECG, and ACC streams include source-device and host timestamp domains.",
+      "issue_codes": []
+    },
+    {
+      "check_id": "validation.check.polar_raw_stream_ownership",
+      "status": "pass",
+      "evidence": "Raw ECG/ACC ownership is exclusive per source; HR/RR dual receiver mode is represented separately.",
+      "issue_codes": []
+    },
+    {
+      "check_id": "validation.check.polar_backend_evidence",
+      "status": "pass",
+      "evidence": "Provider supports synthetic, replay, desktop, mobile, and headset wireless backend IDs, with synthetic and replay fixture selections.",
+      "issue_codes": []
+    },
+    {
+      "check_id": "validation.check.polar_command_rejections",
+      "status": "pass",
+      "evidence": "Damaged command fixtures cover permission, raw stream ownership, unsupported stream, backend missing, timeout, and malformed frame cases.",
+      "issue_codes": []
+    }
+  ],
+  "issues": []
+}

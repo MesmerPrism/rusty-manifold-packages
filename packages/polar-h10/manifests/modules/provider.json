@@ -1,0 +1,60 @@
+{
+  "$schema": "rusty.manifold.module.manifest.v1",
+  "module_id": "module.polar_h10.provider",
+  "module_kind": "provider",
+  "label": "Polar H10 Provider",
+  "version": "0.1.0",
+  "lifecycle_states": [
+    "available",
+    "starting",
+    "running",
+    "stopping",
+    "stopped",
+    "failed"
+  ],
+  "provides_streams": [
+    "stream.polar_h10.hr_rr",
+    "stream.polar_h10.ecg",
+    "stream.polar_h10.acc",
+    "stream.polar_h10.device_status",
+    "stream.polar_h10.backend_health"
+  ],
+  "consumes_streams": [],
+  "accepted_commands": [
+    "command.polar_h10.scan",
+    "command.polar_h10.connect",
+    "command.polar_h10.configure",
+    "command.polar_h10.stream_start",
+    "command.polar_h10.stream_stop",
+    "command.polar_h10.disconnect"
+  ],
+  "required_capabilities": [
+    "manifold.module.control",
+    "manifold.device.access",
+    "manifold.device.raw_stream_ownership"
+  ],
+  "clock_policy": {
+    "source_domain": "clock.source_device",
+    "correlation_required": true
+  },
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "platform_support": [
+    "backend.synthetic",
+    "backend.replay",
+    "backend.desktop_wireless",
+    "backend.mobile_wireless",
+    "backend.headset_wireless"
+  ],
+  "issue_codes": [
+    "issue.permission_missing",
+    "issue.raw_stream_owned",
+    "issue.device_not_found",
+    "issue.unsupported_stream",
+    "issue.backend_missing",
+    "issue.malformed_frame",
+    "issue.timestamp_correlation_missing"
+  ]
+}
