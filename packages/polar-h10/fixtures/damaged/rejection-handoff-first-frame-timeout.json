@@ -1,0 +1,8 @@
+{
+  "$schema": "rusty.manifold.command.rejection.v1",
+  "request_id": "request.polar_h10.handoff_first_frame_timeout",
+  "rejection_code": "rejection.handoff_first_frame_timeout",
+  "message": "The next owner did not observe a first raw frame before the handoff deadline.",
+  "retryable": true,
+  "current_revision": 1
+}

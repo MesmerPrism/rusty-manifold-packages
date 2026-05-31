@@ -63,6 +63,7 @@ class PackageBundle:
     runtime_states: list[dict[str, Any]]
     scorecards: list[dict[str, Any]]
     ownership_modes: list[dict[str, Any]]
+    pmd_handoffs: list[dict[str, Any]]
     rejections: list[dict[str, Any]]
 
 
@@ -104,6 +105,9 @@ def load_packages(repo_root: Path, checks: list[Check]) -> list[PackageBundle]:
                     ),
                     ownership_modes=read_json_dir(
                         package_root / "fixtures/valid", glob_pattern="ownership-*.json"
+                    ),
+                    pmd_handoffs=read_json_dir(
+                        package_root / "fixtures/valid", glob_pattern="handoff-*.json"
                     ),
                     rejections=read_json_dir(
                         package_root / "fixtures/damaged", glob_pattern="rejection-*.json"
@@ -448,6 +452,11 @@ def validate_rejection_fixtures(
             "rejection.backend_missing",
             "rejection.timeout",
             "rejection.malformed_frame",
+            "rejection.handoff_release_timeout",
+            "rejection.handoff_advertisement_timeout",
+            "rejection.handoff_connect_timeout",
+            "rejection.handoff_first_frame_timeout",
+            "rejection.settings_mismatch",
         },
     }
     required = required_by_package.get(str(package.manifest.get("package_id")))
@@ -580,18 +589,85 @@ def validate_polar_readiness(
         for selection in deployment.get("selected_backends", [])
     }
     runtime_backends = {state.get("selected_backend") for state in package.runtime_states}
-    fixture_backends = {"backend.synthetic", "backend.replay"}
+    deployment_fixture_backends = {
+        "backend.synthetic",
+        "backend.replay",
+        "backend.desktop_wireless",
+        "backend.mobile_wireless",
+        "backend.headset_wireless",
+    }
+    runtime_fixture_backends = {"backend.synthetic", "backend.replay"}
     backend_errors = sorted(required_backend_support - support)
     backend_errors += [
-        f"deployment:{backend}" for backend in sorted(fixture_backends - deployment_backends)
+        f"deployment:{backend}"
+        for backend in sorted(deployment_fixture_backends - deployment_backends)
     ]
-    backend_errors += [f"runtime:{backend}" for backend in sorted(fixture_backends - runtime_backends)]
+    backend_errors += [
+        f"runtime:{backend}" for backend in sorted(runtime_fixture_backends - runtime_backends)
+    ]
     append_check(
         checks,
         f"{prefix}.polar_backend_evidence",
         not backend_errors,
         "Polar backend support plus synthetic and replay fixture evidence are present",
         f"backend evidence issues: {backend_errors}",
+    )
+
+    handoffs = [
+        handoff
+        for handoff_doc in package.pmd_handoffs
+        for handoff in handoff_doc.get("handoffs", [])
+    ]
+    required_handoff_ids = {
+        "handoff.polar_h10.desktop_to_headset_raw_pmd",
+        "handoff.polar_h10.headset_to_desktop_raw_pmd",
+        "handoff.polar_h10.mobile_to_headset_raw_pmd",
+        "handoff.polar_h10.headset_to_mobile_raw_pmd",
+    }
+    present_handoff_ids = {handoff.get("handoff_id") for handoff in handoffs}
+    required_evidence_fields = {
+        "handoff_id",
+        "previous_owner_backend",
+        "next_owner_backend",
+        "source_device_id",
+        "handoff_phase",
+        "release_elapsed_ms",
+        "first_frame_elapsed_ms",
+        "settings_fingerprint",
+        "source_timestamp_anchor",
+        "host_timestamp_anchor",
+    }
+    required_phases = {
+        "phase.stop_previous_pmd",
+        "phase.release_previous_owner",
+        "phase.observe_source_advertisement",
+        "phase.connect_next_owner",
+        "phase.match_settings",
+        "phase.start_next_pmd",
+        "phase.observe_first_frame",
+    }
+    handoff_errors = sorted(required_handoff_ids - present_handoff_ids)
+    for handoff in handoffs:
+        handoff_id = str(handoff.get("handoff_id", ""))
+        if not ID_RE.match(handoff_id):
+            handoff_errors.append(f"{handoff_id}:handoff_id")
+        if handoff.get("owner_policy") != "serial_handoff":
+            handoff_errors.append(f"{handoff_id}:owner_policy")
+        if handoff.get("previous_owner_backend") == handoff.get("next_owner_backend"):
+            handoff_errors.append(f"{handoff_id}:owner_transition")
+        streams = set(handoff.get("streams", []))
+        if not {"stream.polar_h10.ecg", "stream.polar_h10.acc"}.issubset(streams):
+            handoff_errors.append(f"{handoff_id}:streams")
+        if not required_phases.issubset(set(handoff.get("required_phases", []))):
+            handoff_errors.append(f"{handoff_id}:required_phases")
+        if not required_evidence_fields.issubset(set(handoff.get("evidence_fields", []))):
+            handoff_errors.append(f"{handoff_id}:evidence_fields")
+    append_check(
+        checks,
+        f"{prefix}.polar_pmd_handoffs",
+        not handoff_errors,
+        "Polar raw PMD host handoff workflows are explicit and evidence-scoped",
+        f"PMD handoff fixture issues: {handoff_errors}",
     )
 
 

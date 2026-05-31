@@ -55,6 +55,11 @@
     "issue.unsupported_stream",
     "issue.backend_missing",
     "issue.malformed_frame",
-    "issue.timestamp_correlation_missing"
+    "issue.timestamp_correlation_missing",
+    "issue.handoff_release_timeout",
+    "issue.handoff_advertisement_timeout",
+    "issue.handoff_connect_timeout",
+    "issue.handoff_first_frame_timeout",
+    "issue.settings_mismatch"
   ]
 }

@@ -26,6 +26,9 @@ manifests, fixtures, and package validation.
 ```powershell
 python tools\check_packages.py --repo-root .
 python -m py_compile tools\check_packages.py tools\package_testkit.py
+python tools\check_device_readiness.py --repo-root . --host-profile desktop
+python tools\check_device_readiness.py --repo-root . --host-profile mobile
+python tools\check_device_readiness.py --repo-root . --host-profile headset
 ```
 
 Keep package ids behavior-oriented and generic. If a device-specific backend or

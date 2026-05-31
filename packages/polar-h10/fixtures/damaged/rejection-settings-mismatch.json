@@ -1,0 +1,8 @@
+{
+  "$schema": "rusty.manifold.command.rejection.v1",
+  "request_id": "request.polar_h10.settings_mismatch",
+  "rejection_code": "rejection.settings_mismatch",
+  "message": "The next owner could not apply the requested raw stream settings fingerprint.",
+  "retryable": false,
+  "current_revision": 1
+}

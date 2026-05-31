@@ -34,6 +34,12 @@
       "status": "pass",
       "evidence": "Damaged command fixtures cover permission, raw stream ownership, unsupported stream, backend missing, timeout, and malformed frame cases.",
       "issue_codes": []
+    },
+    {
+      "check_id": "validation.check.polar_pmd_handoff",
+      "status": "pass",
+      "evidence": "Raw PMD host comparison uses serial release/acquire handoffs with timing, settings, source timestamp, and host timestamp evidence fields.",
+      "issue_codes": []
     }
   ],
   "issues": []

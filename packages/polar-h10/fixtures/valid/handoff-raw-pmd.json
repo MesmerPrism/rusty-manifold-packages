@@ -1,0 +1,163 @@
+{
+  "$schema": "rusty.manifold.pmd_handoff_workflows.v1",
+  "target_id": "package.polar_h10",
+  "target_revision": 1,
+  "handoffs": [
+    {
+      "handoff_id": "handoff.polar_h10.desktop_to_headset_raw_pmd",
+      "owner_policy": "serial_handoff",
+      "streams": [
+        "stream.polar_h10.ecg",
+        "stream.polar_h10.acc"
+      ],
+      "previous_owner_backend": "backend.desktop_wireless",
+      "next_owner_backend": "backend.headset_wireless",
+      "required_phases": [
+        "phase.stop_previous_pmd",
+        "phase.release_previous_owner",
+        "phase.observe_source_advertisement",
+        "phase.connect_next_owner",
+        "phase.match_settings",
+        "phase.start_next_pmd",
+        "phase.observe_first_frame"
+      ],
+      "evidence_fields": [
+        "handoff_id",
+        "previous_owner_backend",
+        "next_owner_backend",
+        "source_device_id",
+        "handoff_phase",
+        "release_elapsed_ms",
+        "first_frame_elapsed_ms",
+        "settings_fingerprint",
+        "source_timestamp_anchor",
+        "host_timestamp_anchor"
+      ],
+      "rejection_codes": [
+        "rejection.raw_stream_owned",
+        "rejection.handoff_release_timeout",
+        "rejection.handoff_advertisement_timeout",
+        "rejection.handoff_connect_timeout",
+        "rejection.handoff_first_frame_timeout",
+        "rejection.settings_mismatch"
+      ]
+    },
+    {
+      "handoff_id": "handoff.polar_h10.headset_to_desktop_raw_pmd",
+      "owner_policy": "serial_handoff",
+      "streams": [
+        "stream.polar_h10.ecg",
+        "stream.polar_h10.acc"
+      ],
+      "previous_owner_backend": "backend.headset_wireless",
+      "next_owner_backend": "backend.desktop_wireless",
+      "required_phases": [
+        "phase.stop_previous_pmd",
+        "phase.release_previous_owner",
+        "phase.observe_source_advertisement",
+        "phase.connect_next_owner",
+        "phase.match_settings",
+        "phase.start_next_pmd",
+        "phase.observe_first_frame"
+      ],
+      "evidence_fields": [
+        "handoff_id",
+        "previous_owner_backend",
+        "next_owner_backend",
+        "source_device_id",
+        "handoff_phase",
+        "release_elapsed_ms",
+        "first_frame_elapsed_ms",
+        "settings_fingerprint",
+        "source_timestamp_anchor",
+        "host_timestamp_anchor"
+      ],
+      "rejection_codes": [
+        "rejection.raw_stream_owned",
+        "rejection.handoff_release_timeout",
+        "rejection.handoff_advertisement_timeout",
+        "rejection.handoff_connect_timeout",
+        "rejection.handoff_first_frame_timeout",
+        "rejection.settings_mismatch"
+      ]
+    },
+    {
+      "handoff_id": "handoff.polar_h10.mobile_to_headset_raw_pmd",
+      "owner_policy": "serial_handoff",
+      "streams": [
+        "stream.polar_h10.ecg",
+        "stream.polar_h10.acc"
+      ],
+      "previous_owner_backend": "backend.mobile_wireless",
+      "next_owner_backend": "backend.headset_wireless",
+      "required_phases": [
+        "phase.stop_previous_pmd",
+        "phase.release_previous_owner",
+        "phase.observe_source_advertisement",
+        "phase.connect_next_owner",
+        "phase.match_settings",
+        "phase.start_next_pmd",
+        "phase.observe_first_frame"
+      ],
+      "evidence_fields": [
+        "handoff_id",
+        "previous_owner_backend",
+        "next_owner_backend",
+        "source_device_id",
+        "handoff_phase",
+        "release_elapsed_ms",
+        "first_frame_elapsed_ms",
+        "settings_fingerprint",
+        "source_timestamp_anchor",
+        "host_timestamp_anchor"
+      ],
+      "rejection_codes": [
+        "rejection.raw_stream_owned",
+        "rejection.handoff_release_timeout",
+        "rejection.handoff_advertisement_timeout",
+        "rejection.handoff_connect_timeout",
+        "rejection.handoff_first_frame_timeout",
+        "rejection.settings_mismatch"
+      ]
+    },
+    {
+      "handoff_id": "handoff.polar_h10.headset_to_mobile_raw_pmd",
+      "owner_policy": "serial_handoff",
+      "streams": [
+        "stream.polar_h10.ecg",
+        "stream.polar_h10.acc"
+      ],
+      "previous_owner_backend": "backend.headset_wireless",
+      "next_owner_backend": "backend.mobile_wireless",
+      "required_phases": [
+        "phase.stop_previous_pmd",
+        "phase.release_previous_owner",
+        "phase.observe_source_advertisement",
+        "phase.connect_next_owner",
+        "phase.match_settings",
+        "phase.start_next_pmd",
+        "phase.observe_first_frame"
+      ],
+      "evidence_fields": [
+        "handoff_id",
+        "previous_owner_backend",
+        "next_owner_backend",
+        "source_device_id",
+        "handoff_phase",
+        "release_elapsed_ms",
+        "first_frame_elapsed_ms",
+        "settings_fingerprint",
+        "source_timestamp_anchor",
+        "host_timestamp_anchor"
+      ],
+      "rejection_codes": [
+        "rejection.raw_stream_owned",
+        "rejection.handoff_release_timeout",
+        "rejection.handoff_advertisement_timeout",
+        "rejection.handoff_connect_timeout",
+        "rejection.handoff_first_frame_timeout",
+        "rejection.settings_mismatch"
+      ]
+    }
+  ]
+}

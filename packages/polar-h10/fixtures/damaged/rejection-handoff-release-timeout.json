@@ -1,0 +1,8 @@
+{
+  "$schema": "rusty.manifold.command.rejection.v1",
+  "request_id": "request.polar_h10.handoff_release_timeout",
+  "rejection_code": "rejection.handoff_release_timeout",
+  "message": "The previous raw stream owner did not release before the handoff deadline.",
+  "retryable": true,
+  "current_revision": 1
+}

@@ -1,0 +1,8 @@
+{
+  "$schema": "rusty.manifold.command.rejection.v1",
+  "request_id": "request.polar_h10.handoff_advertisement_timeout",
+  "rejection_code": "rejection.handoff_advertisement_timeout",
+  "message": "The next owner did not observe source availability before the handoff deadline.",
+  "retryable": true,
+  "current_revision": 1
+}
