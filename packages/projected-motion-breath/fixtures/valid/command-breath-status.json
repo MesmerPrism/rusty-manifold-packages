@@ -1,0 +1,6 @@
+{
+  "$schema": "rusty.manifold.command.payload.breath_status.v1",
+  "request_id": "request.projected_motion_breath.status.synthetic_default",
+  "command_id": "command.breath.status",
+  "target_module_id": "module.breath.projected_motion"
+}

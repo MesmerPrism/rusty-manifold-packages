@@ -1,0 +1,86 @@
+{
+  "$schema": "rusty.manifold.graph.manifest.v1",
+  "graph_id": "graph.hand_animation_record_export",
+  "graph_revision": 1,
+  "nodes": [
+    {
+      "node_id": "node.hand_motion_provider",
+      "module_id": "module.hand_motion.provider"
+    },
+    {
+      "node_id": "node.hand_motion_recorder",
+      "module_id": "module.hand_motion.recorder"
+    },
+    {
+      "node_id": "node.mesh_coordinate_map",
+      "module_id": "module.mesh.coordinate_map"
+    },
+    {
+      "node_id": "node.hand_animation_exporter",
+      "module_id": "module.hand_animation.exporter"
+    }
+  ],
+  "edges": [
+    {
+      "edge_id": "edge.rig_to_recorder",
+      "source_node_id": "node.hand_motion_provider",
+      "source_stream_id": "stream.hand.rig_capture",
+      "target_node_id": "node.hand_motion_recorder",
+      "target_input_id": "stream.hand.rig_capture"
+    },
+    {
+      "edge_id": "edge.joints_to_recorder",
+      "source_node_id": "node.hand_motion_provider",
+      "source_stream_id": "stream.hand.joint_frame",
+      "target_node_id": "node.hand_motion_recorder",
+      "target_input_id": "stream.hand.joint_frame"
+    },
+    {
+      "edge_id": "edge.validation_to_recorder",
+      "source_node_id": "node.hand_motion_provider",
+      "source_stream_id": "stream.hand.validation_mesh",
+      "target_node_id": "node.hand_motion_recorder",
+      "target_input_id": "stream.hand.validation_mesh"
+    },
+    {
+      "edge_id": "edge.rig_to_coordinate_map",
+      "source_node_id": "node.hand_motion_provider",
+      "source_stream_id": "stream.hand.rig_capture",
+      "target_node_id": "node.mesh_coordinate_map",
+      "target_input_id": "stream.hand.rig_capture"
+    },
+    {
+      "edge_id": "edge.rig_to_exporter",
+      "source_node_id": "node.hand_motion_provider",
+      "source_stream_id": "stream.hand.rig_capture",
+      "target_node_id": "node.hand_animation_exporter",
+      "target_input_id": "stream.hand.rig_capture"
+    },
+    {
+      "edge_id": "edge.joints_to_exporter",
+      "source_node_id": "node.hand_motion_provider",
+      "source_stream_id": "stream.hand.joint_frame",
+      "target_node_id": "node.hand_animation_exporter",
+      "target_input_id": "stream.hand.joint_frame"
+    },
+    {
+      "edge_id": "edge.validation_to_exporter",
+      "source_node_id": "node.hand_motion_provider",
+      "source_stream_id": "stream.hand.validation_mesh",
+      "target_node_id": "node.hand_animation_exporter",
+      "target_input_id": "stream.hand.validation_mesh"
+    },
+    {
+      "edge_id": "edge.coordinate_map_to_exporter",
+      "source_node_id": "node.mesh_coordinate_map",
+      "source_stream_id": "stream.mesh.coordinate_map",
+      "target_node_id": "node.hand_animation_exporter",
+      "target_input_id": "stream.mesh.coordinate_map"
+    }
+  ],
+  "required_capabilities": [
+    "manifold.graph.run",
+    "manifold.recording.control",
+    "manifold.export.control"
+  ]
+}

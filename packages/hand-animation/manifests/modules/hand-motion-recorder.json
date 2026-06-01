@@ -1,0 +1,53 @@
+{
+  "$schema": "rusty.manifold.module.manifest.v1",
+  "module_id": "module.hand_motion.recorder",
+  "module_kind": "sink",
+  "label": "Hand Motion Recorder",
+  "version": "0.1.0",
+  "lifecycle_states": [
+    "available",
+    "starting",
+    "running",
+    "stopping",
+    "stopped",
+    "failed"
+  ],
+  "provides_streams": [
+    "stream.hand.recording_status"
+  ],
+  "consumes_streams": [
+    "stream.hand.rig_capture",
+    "stream.hand.joint_frame",
+    "stream.hand.validation_mesh"
+  ],
+  "accepted_commands": [
+    "command.hand_record.prepare",
+    "command.hand_record.start",
+    "command.hand_record.stop",
+    "command.hand_record.status"
+  ],
+  "required_capabilities": [
+    "manifold.module.control",
+    "manifold.recording.control"
+  ],
+  "clock_policy": {
+    "source_domain": "clock.host_monotonic",
+    "correlation_required": true
+  },
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "platform_support": [
+    "backend.synthetic",
+    "backend.replay",
+    "backend.desktop_host",
+    "backend.headset_device"
+  ],
+  "issue_codes": [
+    "issue.recording_lease_missing",
+    "issue.recording_source_unavailable",
+    "issue.recording_artifact_write_failed",
+    "issue.recording_confidence_low"
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "$schema": "rusty.manifold.command.rejection.v1",
+  "request_id": "request.projected_motion_breath.stale_source",
+  "command_id": "command.breath.status",
+  "rejection_code": "rejection.source_stale",
+  "retryable": true,
+  "reason": "No fresh source sample is available inside the configured stale timeout."
+}

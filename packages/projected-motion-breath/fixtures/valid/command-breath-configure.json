@@ -1,0 +1,20 @@
+{
+  "$schema": "rusty.manifold.command.payload.breath_configure.v1",
+  "request_id": "request.projected_motion_breath.configure.synthetic_default",
+  "command_id": "command.breath.configure",
+  "target_module_id": "module.breath.projected_motion",
+  "profile_patch": {
+    "calibration": {
+      "lower_quantile": 0.05,
+      "upper_quantile": 0.95,
+      "min_span": 0.02
+    },
+    "classifier": {
+      "delta_threshold": 0.01,
+      "stale_timeout_s": 0.5
+    },
+    "quality": {
+      "min_quality01": 0.5
+    }
+  }
+}

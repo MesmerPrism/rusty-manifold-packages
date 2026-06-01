@@ -1,5 +1,8 @@
 [workspace]
-members = ["packages/polar-h10/crates/polar-h10-core"]
+members = [
+    "packages/polar-h10/crates/polar-h10-core",
+    "packages/projected-motion-breath/crates/projected-motion-breath-core",
+]
 resolver = "2"
 
 [workspace.package]

@@ -1,0 +1,22 @@
+{
+  "$schema": "rusty.manifold.validation.scorecard.v1",
+  "scorecard_id": "scorecard.hand_animation_synthetic_contract",
+  "status": "pass",
+  "checks": [
+    {
+      "check_id": "check.hand_animation.package_links",
+      "status": "pass",
+      "evidence": "Package exports resolve provider, recorder, coordinate-map, exporter, streams, and command descriptors."
+    },
+    {
+      "check_id": "check.hand_animation.boundary_split",
+      "status": "pass",
+      "evidence": "Manifests keep command authority in Manifold, payload schemas in Matter ids, and runtime acquisition outside this package."
+    },
+    {
+      "check_id": "check.hand_animation.high_rate_payloads",
+      "status": "pass",
+      "evidence": "High-rate joint frames and validation meshes are streams/artifacts, not command-envelope bodies."
+    }
+  ]
+}

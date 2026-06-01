@@ -1,0 +1,19 @@
+{
+  "$schema": "rusty.manifold.projected_motion_breath.source_binding.v1",
+  "binding_id": "binding.projected_motion_breath.synthetic.external_patch_stream",
+  "package_id": "package.projected_motion_breath",
+  "target_module_id": "module.breath.projected_motion",
+  "profile_id": "profile.projected_motion_breath.synthetic_default",
+  "profile_path": "fixtures/valid/profile-synthetic.json",
+  "descriptor_set_path": "fixtures/valid/source-adapter-descriptors.json",
+  "selected_adapter_id": "adapter.projected_motion_breath.external_patch_stream_bridge_shape",
+  "selected_source_kind": "external_patch_stream_bridge",
+  "selected_input_kind": "vector3",
+  "selected_output_stream_id": "stream.motion.vector3",
+  "source_stream_id": "stream.motion.vector3",
+  "binding_policy": "descriptor_only.owner_review_required",
+  "execution_policy": "not_executed.schema_binding_only",
+  "runtime_execution_performed": false,
+  "platform_execution_performed": false,
+  "device_required": false
+}

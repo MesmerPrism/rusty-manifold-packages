@@ -1,0 +1,20 @@
+{
+  "$schema": "rusty.manifold.stream.manifest.v1",
+  "stream_id": "stream.breath.dynamics",
+  "source_module_id": "module.breath.dynamics",
+  "semantic_family": "breath.dynamics",
+  "sample_schema": "rusty.manifold.sample.breath_dynamics.v1",
+  "rate_class": "windowed",
+  "timestamp_domains": [
+    "clock.host_monotonic"
+  ],
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "transport_offers": [],
+  "subscription": {
+    "ui_subscribable": true,
+    "max_subscribers": 8
+  }
+}

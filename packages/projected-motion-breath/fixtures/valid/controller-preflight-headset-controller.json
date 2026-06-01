@@ -1,0 +1,107 @@
+{
+  "$schema": "rusty.manifold.projected_motion_breath.controller_preflight_fixture.v1",
+  "preflight_id": "preflight.projected_motion_breath.headset_controller_pose.non_human",
+  "package_id": "package.projected_motion_breath",
+  "target_module_id": "module.breath.projected_motion",
+  "binding_path": "fixtures/valid/source-binding-headset-controller-pose.json",
+  "source_payload_kind": "object_pose",
+  "provider": {
+    "provider_id": "provider.headset.controller_pose.preflight",
+    "provider_kind": "headset_controller_pose",
+    "output_stream_id": "stream.motion.object_pose",
+    "physical_controller_input_used": false,
+    "manual_controller_trial_required": true
+  },
+  "projection": {
+    "axis": [
+      0.0,
+      1.0,
+      0.0
+    ]
+  },
+  "calibration": {
+    "projection_values": [
+      -0.03,
+      -0.02,
+      -0.01,
+      0.0,
+      0.01,
+      0.02,
+      0.03
+    ]
+  },
+  "samples": [
+    {
+      "source_id": "source.headset.controller.right.preflight",
+      "sample_time_s": 10.0,
+      "host_time_s": 10.016,
+      "frame_id": "frame.headset.stage",
+      "position_m": [
+        0.12,
+        0.0,
+        -0.35
+      ],
+      "orientation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "connected": true,
+      "tracked": true,
+      "tracking01": 0.98
+    },
+    {
+      "source_id": "source.headset.controller.right.preflight",
+      "sample_time_s": 10.033,
+      "host_time_s": 10.049,
+      "frame_id": "frame.headset.stage",
+      "position_m": [
+        0.12,
+        0.02,
+        -0.35
+      ],
+      "orientation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "connected": true,
+      "tracked": true,
+      "tracking01": 0.98
+    },
+    {
+      "source_id": "source.headset.controller.right.preflight",
+      "sample_time_s": 10.066,
+      "host_time_s": 10.082,
+      "frame_id": "frame.headset.stage",
+      "position_m": [
+        0.12,
+        -0.01,
+        -0.35
+      ],
+      "orientation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "connected": true,
+      "tracked": true,
+      "tracking01": 0.98
+    }
+  ],
+  "expected": {
+    "output_stream_id": "stream.motion.object_pose",
+    "min_sample_count": 3,
+    "min_estimate_count": 3,
+    "phases": [
+      "pause",
+      "inhale",
+      "exhale"
+    ],
+    "physical_controller_input_used": false,
+    "manual_controller_trial_required": true
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "$schema": "rusty.manifold.command.payload.breath_begin_calibration.v1",
+  "request_id": "request.projected_motion_breath.begin_calibration.bad_bounds",
+  "command_id": "command.breath.begin_calibration",
+  "target_module_id": "module.breath.projected_motion",
+  "source_stream_ids": [
+    "stream.motion.vector3"
+  ],
+  "calibration_projection": [
+    0.5,
+    0.5,
+    0.5
+  ],
+  "expected_issue_code": "issue.calibration_invalid"
+}

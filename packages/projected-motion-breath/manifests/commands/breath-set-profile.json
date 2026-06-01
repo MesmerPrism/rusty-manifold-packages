@@ -1,0 +1,10 @@
+{
+  "$schema": "rusty.manifold.command.descriptor.v1",
+  "command_id": "command.breath.set_profile",
+  "target_scope": "module.breath.projected_motion",
+  "input_schema": "rusty.manifold.command.input.breath_profile.v1",
+  "required_capability": "manifold.module.control",
+  "required_lease_scope": "module.breath.projected_motion",
+  "safety_class": "bounded_mutation",
+  "operator_confirmation_required": false
+}

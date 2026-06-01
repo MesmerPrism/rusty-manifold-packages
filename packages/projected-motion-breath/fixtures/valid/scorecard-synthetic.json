@@ -1,0 +1,58 @@
+{
+  "$schema": "rusty.manifold.validation.scorecard.v1",
+  "scorecard_id": "scorecard.projected_motion_breath_synthetic_contract",
+  "target_id": "package.projected_motion_breath",
+  "target_revision": 1,
+  "status": "pass",
+  "checks": [
+    {
+      "check_id": "validation.check.pose_and_vector_inputs",
+      "status": "pass",
+      "evidence": "Object pose and vector motion are separate provider streams into the same projected-motion processor.",
+      "issue_codes": []
+    },
+    {
+      "check_id": "validation.check.provider_processor_sink_split",
+      "status": "pass",
+      "evidence": "Motion streams stay on providers; breath volume and dynamics stay on processors; feedback state stays on a sink.",
+      "issue_codes": []
+    },
+    {
+      "check_id": "validation.check.synthetic_replay_ready",
+      "status": "pass",
+      "evidence": "Synthetic and replay deployments are describable without live platform APIs.",
+      "issue_codes": []
+    },
+    {
+      "check_id": "validation.check.profile_boundary",
+      "status": "pass",
+      "evidence": "The profile fixture names common projection, calibration, smoothing, classifier, and quality controls without source-specific runtime ownership.",
+      "issue_codes": []
+    },
+    {
+      "check_id": "validation.check.profile_command_validation",
+      "status": "pass",
+      "evidence": "The package validator and pure core check valid and damaged profile/command payload fixtures before any runtime mutation.",
+      "issue_codes": []
+    },
+    {
+      "check_id": "validation.check.source_adapter_descriptors",
+      "status": "pass",
+      "evidence": "Generic pose, vector, controller-shaped, wearable-acceleration-shaped, and external patch-stream bridge source descriptors map into the same pose/vector processor streams without runtime adapters.",
+      "issue_codes": []
+    },
+    {
+      "check_id": "validation.check.source_binding_validation",
+      "status": "pass",
+      "evidence": "Source binding fixtures connect profile intent, selected source adapter, and pose/vector stream contracts without starting adapters or runtime execution.",
+      "issue_codes": []
+    },
+    {
+      "check_id": "validation.check.adapter_normalization_validation",
+      "status": "pass",
+      "evidence": "Object-pose, vector-motion, and external patch-channel payload fixtures normalize into processor input sample shapes without live transports.",
+      "issue_codes": []
+    }
+  ],
+  "issues": []
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "rusty.manifold.command.payload.breath_begin_calibration.v1",
+  "request_id": "request.projected_motion_breath.begin_calibration.stale_source",
+  "command_id": "command.breath.begin_calibration",
+  "target_module_id": "module.breath.projected_motion",
+  "source_stream_ids": [
+    "stream.motion.vector3"
+  ],
+  "calibration_projection": [
+    0.0,
+    1.0
+  ],
+  "source_status": {
+    "sample_age_s": 1.0,
+    "stale_timeout_s": 0.5,
+    "quality01": 1.0,
+    "min_quality01": 0.5
+  },
+  "expected_issue_code": "issue.source_stale"
+}

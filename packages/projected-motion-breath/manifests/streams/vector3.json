@@ -1,0 +1,21 @@
+{
+  "$schema": "rusty.manifold.stream.manifest.v1",
+  "stream_id": "stream.motion.vector3",
+  "source_module_id": "module.motion.vector_provider",
+  "semantic_family": "motion.vector3",
+  "sample_schema": "rusty.manifold.sample.vector3.v1",
+  "rate_class": "periodic",
+  "timestamp_domains": [
+    "clock.source_device",
+    "clock.host_monotonic"
+  ],
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "transport_offers": [],
+  "subscription": {
+    "ui_subscribable": true,
+    "max_subscribers": 8
+  }
+}

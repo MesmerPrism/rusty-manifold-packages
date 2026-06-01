@@ -1,0 +1,20 @@
+{
+  "$schema": "rusty.manifold.stream.manifest.v1",
+  "stream_id": "stream.mesh.coordinate_map",
+  "source_module_id": "module.mesh.coordinate_map",
+  "semantic_family": "mesh.coordinate_map",
+  "sample_schema": "rusty.matter.mesh.coordinate_map.v1",
+  "rate_class": "event",
+  "timestamp_domains": [
+    "clock.host_monotonic"
+  ],
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "transport_offers": [],
+  "subscription": {
+    "ui_subscribable": true,
+    "max_subscribers": 4
+  }
+}

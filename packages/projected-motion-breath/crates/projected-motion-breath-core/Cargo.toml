@@ -1,16 +1,16 @@
 [package]
-name = "polar-h10-core"
+name = "projected-motion-breath-core"
 version = "0.1.0"
 edition.workspace = true
 license.workspace = true
 publish = false
 
 [lib]
-name = "polar_h10_core"
+name = "projected_motion_breath_core"
 path = "src/lib.rs"
 
 [[bin]]
-name = "polar-h10-core"
+name = "projected-motion-breath-core"
 path = "src/main.rs"
 
 [dependencies]

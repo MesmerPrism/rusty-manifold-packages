@@ -1,0 +1,43 @@
+{
+  "$schema": "rusty.manifold.package.manifest.v1",
+  "package_id": "package.hand_animation",
+  "version": "0.1.0",
+  "license": "MIT OR Apache-2.0",
+  "exports": {
+    "modules": [
+      "module.hand_motion.provider",
+      "module.hand_motion.recorder",
+      "module.mesh.coordinate_map",
+      "module.hand_animation.exporter"
+    ],
+    "streams": [
+      "stream.hand.rig_capture",
+      "stream.hand.joint_frame",
+      "stream.hand.validation_mesh",
+      "stream.hand.recording_status",
+      "stream.mesh.coordinate_map",
+      "stream.hand.export_report"
+    ],
+    "commands": [
+      "command.hand_record.prepare",
+      "command.hand_record.start",
+      "command.hand_record.stop",
+      "command.hand_record.status",
+      "command.coordinate_map.build",
+      "command.hand_animation.export"
+    ]
+  },
+  "validation_commands": [
+    {
+      "command_id": "validation.package_workspace",
+      "command": "python tools/check_packages.py --repo-root ."
+    }
+  ],
+  "safety": {
+    "uses_network": false,
+    "uses_subprocess": false,
+    "uses_native_code": false,
+    "uses_device_api": true,
+    "carries_binary_payloads": true
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "rusty.manifold.stream.manifest.v1",
+  "stream_id": "stream.hand.joint_frame",
+  "source_module_id": "module.hand_motion.provider",
+  "semantic_family": "hand.joint_motion",
+  "sample_schema": "rusty.matter.hand.joint_frame.v1",
+  "rate_class": "periodic",
+  "timestamp_domains": [
+    "clock.source_device",
+    "clock.host_monotonic"
+  ],
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "transport_offers": [],
+  "subscription": {
+    "ui_subscribable": false,
+    "max_subscribers": 2
+  }
+}

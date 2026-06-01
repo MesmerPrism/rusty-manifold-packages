@@ -1,0 +1,34 @@
+{
+  "$schema": "rusty.manifold.deployment.manifest.v1",
+  "deployment_id": "deployment.hand_animation_synthetic",
+  "target_host_id": "host.synthetic",
+  "package_id": "package.hand_animation",
+  "selected_modules": [
+    "module.hand_motion.provider",
+    "module.hand_motion.recorder",
+    "module.mesh.coordinate_map",
+    "module.hand_animation.exporter"
+  ],
+  "selected_backends": [
+    {
+      "module_id": "module.hand_motion.provider",
+      "backend_id": "backend.synthetic"
+    },
+    {
+      "module_id": "module.hand_motion.recorder",
+      "backend_id": "backend.synthetic"
+    },
+    {
+      "module_id": "module.mesh.coordinate_map",
+      "backend_id": "backend.synthetic"
+    },
+    {
+      "module_id": "module.hand_animation.exporter",
+      "backend_id": "backend.synthetic"
+    }
+  ],
+  "endpoint_id": "endpoint.control_loopback",
+  "security_policy": "policy.local_process_only",
+  "artifact_policy": "policy.session_artifacts",
+  "session_output_policy": "policy.capture_export_report"
+}

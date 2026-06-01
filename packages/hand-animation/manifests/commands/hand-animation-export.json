@@ -1,0 +1,10 @@
+{
+  "$schema": "rusty.manifold.command.descriptor.v1",
+  "command_id": "command.hand_animation.export",
+  "target_scope": "module.hand_animation.exporter",
+  "input_schema": "rusty.manifold.command.input.hand_animation_export.v1",
+  "required_capability": "manifold.export.control",
+  "required_lease_scope": "module.hand_animation.exporter",
+  "safety_class": "operator_confirmed",
+  "operator_confirmation_required": true
+}

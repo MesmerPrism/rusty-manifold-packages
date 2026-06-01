@@ -1,0 +1,10 @@
+{
+  "$schema": "rusty.manifold.command.descriptor.v1",
+  "command_id": "command.hand_record.stop",
+  "target_scope": "module.hand_motion.recorder",
+  "input_schema": "rusty.manifold.command.input.hand_record_stop.v1",
+  "required_capability": "manifold.recording.control",
+  "required_lease_scope": "module.hand_motion.recorder",
+  "safety_class": "bounded_mutation",
+  "operator_confirmation_required": false
+}

@@ -1,0 +1,13 @@
+{
+  "$schema": "rusty.manifold.module.runtime_state.v1",
+  "module_id": "module.hand_animation.exporter",
+  "runtime_revision": 1,
+  "lifecycle": "stopped",
+  "health": "healthy",
+  "selected_backend": "backend.synthetic",
+  "active_streams": [],
+  "active_commands": [
+    "command.hand_animation.export"
+  ],
+  "issues": []
+}

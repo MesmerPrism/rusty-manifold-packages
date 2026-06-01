@@ -1,0 +1,45 @@
+{
+  "$schema": "rusty.manifold.module.manifest.v1",
+  "module_id": "module.mesh.coordinate_map",
+  "module_kind": "processor",
+  "label": "Mesh Coordinate Map Builder",
+  "version": "0.1.0",
+  "lifecycle_states": [
+    "available",
+    "starting",
+    "running",
+    "stopping",
+    "stopped",
+    "failed"
+  ],
+  "provides_streams": [
+    "stream.mesh.coordinate_map"
+  ],
+  "consumes_streams": [
+    "stream.hand.rig_capture"
+  ],
+  "accepted_commands": [
+    "command.coordinate_map.build"
+  ],
+  "required_capabilities": [
+    "manifold.module.control"
+  ],
+  "clock_policy": {
+    "source_domain": "clock.host_monotonic",
+    "correlation_required": false
+  },
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "platform_support": [
+    "backend.synthetic",
+    "backend.replay",
+    "backend.desktop_host"
+  ],
+  "issue_codes": [
+    "issue.coordinate_map_topology_missing",
+    "issue.coordinate_map_sampling_failed",
+    "issue.coordinate_map_anchor_invalid"
+  ]
+}

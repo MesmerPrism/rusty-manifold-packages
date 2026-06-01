@@ -1,0 +1,13 @@
+{
+  "$schema": "rusty.manifold.module.runtime_state.v1",
+  "module_id": "module.motion.object_pose_provider",
+  "runtime_revision": 1,
+  "lifecycle": "running",
+  "health": "healthy",
+  "selected_backend": "backend.synthetic",
+  "active_streams": [
+    "stream.motion.object_pose"
+  ],
+  "active_commands": [],
+  "issues": []
+}

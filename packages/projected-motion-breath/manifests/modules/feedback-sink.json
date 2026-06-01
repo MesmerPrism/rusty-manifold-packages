@@ -1,0 +1,46 @@
+{
+  "$schema": "rusty.manifold.module.manifest.v1",
+  "module_id": "module.breath.feedback_sink",
+  "module_kind": "sink",
+  "label": "Breath Feedback Sink",
+  "version": "0.1.0",
+  "lifecycle_states": [
+    "available",
+    "running",
+    "degraded",
+    "stopped",
+    "failed"
+  ],
+  "provides_streams": [
+    "stream.breath.feedback_state"
+  ],
+  "consumes_streams": [
+    "stream.breath.volume",
+    "stream.breath.dynamics"
+  ],
+  "accepted_commands": [
+    "command.breath.status"
+  ],
+  "required_capabilities": [
+    "manifold.module.control"
+  ],
+  "clock_policy": {
+    "source_domain": "clock.host_monotonic",
+    "correlation_required": true
+  },
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "platform_support": [
+    "backend.synthetic",
+    "backend.replay",
+    "backend.desktop_host",
+    "backend.mobile_device",
+    "backend.headset_device"
+  ],
+  "issue_codes": [
+    "issue.input_stream_missing",
+    "issue.output_not_available"
+  ]
+}

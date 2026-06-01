@@ -9,8 +9,13 @@ platform SDKs, dynamic loading, device APIs, or transport stacks.
 - `synthetic`: synthetic provider and processor package for contract tests.
 - `biosignal-sensor`: generic biosignal provider plus separate processing
   modules for derived streams.
+- `projected-motion-breath`: source-agnostic pose/vector motion-to-breath
+  processor contracts, source-adapter bindings, adapter-normalization fixtures,
+  and synthetic/replay fixtures.
 - `polar-h10`: public sensor package manifests, fixtures, provenance, and a
   Rust processor core for graph-resolved synthetic/replay validation.
+- `hand-animation`: generic hand-rig recording, coordinate-map, validation, and
+  animated mesh export contracts over Matter payload schemas.
 
 ## Validation
 
@@ -20,6 +25,7 @@ python -m py_compile tools\check_packages.py tools\package_testkit.py tools\chec
 cargo fmt --all --check
 cargo test --workspace
 cargo run -p polar-h10-core -- validate-goldens --package-root packages\polar-h10
+cargo run -p projected-motion-breath-core -- validate-goldens --package-root packages\projected-motion-breath
 python tools\check_device_readiness.py --repo-root . --host-profile desktop
 python tools\check_device_readiness.py --repo-root . --host-profile mobile
 python tools\check_device_readiness.py --repo-root . --host-profile headset
@@ -28,5 +34,6 @@ python tools\check_device_readiness.py --repo-root . --host-profile headset
 The validator checks package exports, module stream/command links, graph links,
 deployment selections, completion evidence, dotted ids, public-boundary terms,
 processor golden fixtures, provenance metadata, and host-profile readiness
-bundles. The Rust core re-runs the Polar processor goldens and can execute the
-static package graph from synthetic/replay input fixtures.
+bundles. The Rust cores re-run the Polar and projected-motion processor
+goldens, and the Polar core can execute the static package graph from
+synthetic/replay input fixtures.

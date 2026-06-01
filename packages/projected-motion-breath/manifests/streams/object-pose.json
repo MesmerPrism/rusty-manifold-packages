@@ -1,0 +1,21 @@
+{
+  "$schema": "rusty.manifold.stream.manifest.v1",
+  "stream_id": "stream.motion.object_pose",
+  "source_module_id": "module.motion.object_pose_provider",
+  "semantic_family": "motion.object_pose",
+  "sample_schema": "rusty.manifold.sample.object_pose.v1",
+  "rate_class": "periodic",
+  "timestamp_domains": [
+    "clock.source_device",
+    "clock.host_monotonic"
+  ],
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "transport_offers": [],
+  "subscription": {
+    "ui_subscribable": true,
+    "max_subscribers": 8
+  }
+}

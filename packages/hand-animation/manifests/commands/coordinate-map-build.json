@@ -1,0 +1,10 @@
+{
+  "$schema": "rusty.manifold.command.descriptor.v1",
+  "command_id": "command.coordinate_map.build",
+  "target_scope": "module.mesh.coordinate_map",
+  "input_schema": "rusty.manifold.command.input.coordinate_map_build.v1",
+  "required_capability": "manifold.module.control",
+  "required_lease_scope": "module.mesh.coordinate_map",
+  "safety_class": "bounded_mutation",
+  "operator_confirmation_required": false
+}

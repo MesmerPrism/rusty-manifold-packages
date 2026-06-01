@@ -1,0 +1,44 @@
+{
+  "$schema": "rusty.manifold.module.manifest.v1",
+  "module_id": "module.hand_motion.provider",
+  "module_kind": "provider",
+  "label": "Hand Motion Provider",
+  "version": "0.1.0",
+  "lifecycle_states": [
+    "available",
+    "starting",
+    "running",
+    "stopping",
+    "stopped",
+    "failed"
+  ],
+  "provides_streams": [
+    "stream.hand.rig_capture",
+    "stream.hand.joint_frame",
+    "stream.hand.validation_mesh"
+  ],
+  "consumes_streams": [],
+  "accepted_commands": [],
+  "required_capabilities": [
+    "manifold.device.access"
+  ],
+  "clock_policy": {
+    "source_domain": "clock.source_device",
+    "correlation_required": true
+  },
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "platform_support": [
+    "backend.synthetic",
+    "backend.replay",
+    "backend.headset_device"
+  ],
+  "issue_codes": [
+    "issue.hand_provider_unavailable",
+    "issue.hand_tracking_inactive",
+    "issue.hand_topology_changed",
+    "issue.timestamp_correlation_missing"
+  ]
+}

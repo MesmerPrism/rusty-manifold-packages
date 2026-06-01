@@ -1,0 +1,8 @@
+{
+  "$schema": "rusty.manifold.command.payload.breath_set_profile.v1",
+  "request_id": "request.projected_motion_breath.set_profile.unsupported_projection",
+  "command_id": "command.breath.set_profile",
+  "target_module_id": "module.breath.projected_motion",
+  "profile_path": "fixtures/damaged/profile-unsupported-projection.json",
+  "expected_issue_code": "issue.projection_unsupported"
+}

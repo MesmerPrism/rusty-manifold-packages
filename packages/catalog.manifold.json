@@ -11,6 +11,14 @@
       "manifest_path": "packages/biosignal-sensor/manifests/package.manifold.json"
     },
     {
+      "package_id": "package.projected_motion_breath",
+      "manifest_path": "packages/projected-motion-breath/manifests/package.manifold.json"
+    },
+    {
+      "package_id": "package.hand_animation",
+      "manifest_path": "packages/hand-animation/manifests/package.manifold.json"
+    },
+    {
       "package_id": "package.polar_h10",
       "manifest_path": "packages/polar-h10/manifests/package.manifold.json"
     }

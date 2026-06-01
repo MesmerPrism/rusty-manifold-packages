@@ -1,0 +1,42 @@
+{
+  "$schema": "rusty.manifold.module.manifest.v1",
+  "module_id": "module.motion.vector_provider",
+  "module_kind": "provider",
+  "label": "Vector Motion Provider",
+  "version": "0.1.0",
+  "lifecycle_states": [
+    "available",
+    "running",
+    "degraded",
+    "stopped",
+    "failed"
+  ],
+  "provides_streams": [
+    "stream.motion.vector3"
+  ],
+  "consumes_streams": [],
+  "accepted_commands": [],
+  "required_capabilities": [
+    "manifold.stream.publish"
+  ],
+  "clock_policy": {
+    "source_domain": "clock.source_device",
+    "correlation_required": true
+  },
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "platform_support": [
+    "backend.synthetic",
+    "backend.replay",
+    "backend.desktop_host",
+    "backend.mobile_device",
+    "backend.headset_device"
+  ],
+  "issue_codes": [
+    "issue.input_stream_missing",
+    "issue.motion_quality_low",
+    "issue.clock_correlation_missing"
+  ]
+}

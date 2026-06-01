@@ -1,0 +1,13 @@
+{
+  "$schema": "rusty.manifold.command.payload.breath_configure.v1",
+  "request_id": "request.projected_motion_breath.configure.invalid_stale_policy",
+  "command_id": "command.breath.configure",
+  "target_module_id": "module.breath.projected_motion",
+  "profile_patch": {
+    "classifier": {
+      "delta_threshold": 0.01,
+      "stale_timeout_s": 0.0
+    }
+  },
+  "expected_issue_code": "issue.profile_invalid"
+}

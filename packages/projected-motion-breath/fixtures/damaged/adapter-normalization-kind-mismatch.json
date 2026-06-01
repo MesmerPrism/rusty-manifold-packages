@@ -1,0 +1,39 @@
+{
+  "$schema": "rusty.manifold.projected_motion_breath.adapter_normalization_case.v1",
+  "case_id": "case.projected_motion_breath.normalize.damaged.kind_mismatch",
+  "package_id": "package.projected_motion_breath",
+  "binding_path": "fixtures/valid/source-binding-object-pose.json",
+  "source_payload_kind": "vector_motion",
+  "input": {
+    "source_id": "source.synthetic.vector_motion",
+    "sample_time_s": 13.0,
+    "host_time_s": 13.006,
+    "frame_id": "frame.synthetic.sensor",
+    "vector3": [
+      0.0,
+      0.25,
+      0.0
+    ],
+    "units": "source_units",
+    "quality01": 0.9
+  },
+  "expected_sample_kind": "vector_motion",
+  "expected": {
+    "source_id": "source.synthetic.vector_motion",
+    "sample_time_s": 13.0,
+    "host_time_s": 13.006,
+    "frame_id": "frame.synthetic.sensor",
+    "vector3": [
+      0.0,
+      0.25,
+      0.0
+    ],
+    "units": "source_units",
+    "quality01": 0.9
+  },
+  "execution_policy": "not_executed.fixture_normalization_only",
+  "runtime_execution_performed": false,
+  "platform_execution_performed": false,
+  "device_required": false,
+  "expected_issue_code": "issue.adapter_payload_kind_mismatch"
+}

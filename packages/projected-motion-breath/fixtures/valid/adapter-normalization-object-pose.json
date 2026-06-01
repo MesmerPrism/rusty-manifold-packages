@@ -1,0 +1,52 @@
+{
+  "$schema": "rusty.manifold.projected_motion_breath.adapter_normalization_case.v1",
+  "case_id": "case.projected_motion_breath.normalize.object_pose_generic",
+  "package_id": "package.projected_motion_breath",
+  "binding_path": "fixtures/valid/source-binding-object-pose.json",
+  "source_payload_kind": "object_pose",
+  "input": {
+    "source_id": "source.synthetic.object_pose",
+    "sample_time_s": 10.0,
+    "host_time_s": 10.016,
+    "frame_id": "frame.synthetic.room",
+    "position_m": [
+      0.02,
+      1.14,
+      -0.08
+    ],
+    "orientation_xyzw": [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "connected": true,
+    "tracked": true,
+    "tracking01": 0.98
+  },
+  "expected_sample_kind": "rigid_motion",
+  "expected": {
+    "source_id": "source.synthetic.object_pose",
+    "sample_time_s": 10.0,
+    "host_time_s": 10.016,
+    "frame_id": "frame.synthetic.room",
+    "position_m": [
+      0.02,
+      1.14,
+      -0.08
+    ],
+    "orientation_xyzw": [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "connected": true,
+    "tracked": true,
+    "quality01": 0.98
+  },
+  "execution_policy": "not_executed.fixture_normalization_only",
+  "runtime_execution_performed": false,
+  "platform_execution_performed": false,
+  "device_required": false
+}

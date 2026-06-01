@@ -1,0 +1,98 @@
+{
+  "$schema": "rusty.manifold.processor.projected_motion_breath_golden.v1",
+  "golden_id": "golden.projected_motion_breath.pose_and_vector_projection",
+  "package_id": "package.projected_motion_breath",
+  "module_id": "module.breath.projected_motion",
+  "input_stream_ids": [
+    "stream.motion.object_pose",
+    "stream.motion.vector3"
+  ],
+  "output_stream_id": "stream.breath.volume",
+  "settings": {
+    "projection_formula": "dot(sample_vector - calibration_center, projection_axis)",
+    "normalization_formula": "clamp((projection - lower_bound) / (upper_bound - lower_bound), 0, 1)",
+    "calibration_quantiles": [
+      0.05,
+      0.95
+    ],
+    "ema_alpha": 0.2
+  },
+  "cases": [
+    {
+      "case_id": "case.projected_motion_breath.object_pose_basic_projection",
+      "input": {
+        "input_kind": "pose",
+        "calibration_projection": [
+          -0.02,
+          -0.01,
+          0.0,
+          0.01,
+          0.02
+        ],
+        "live_projection": 0.01,
+        "previous_projection": 0.0
+      },
+      "expected": {
+        "lower_bound": -0.02,
+        "upper_bound": 0.02,
+        "volume01": 0.75,
+        "phase": "inhale",
+        "tracking01": 1.0,
+        "quality": "stable"
+      },
+      "tolerance": {
+        "absolute": 0.000001
+      }
+    },
+    {
+      "case_id": "case.projected_motion_breath.vector_basic_projection",
+      "input": {
+        "input_kind": "vector3",
+        "calibration_projection": [
+          0.0,
+          0.25,
+          0.5,
+          0.75,
+          1.0
+        ],
+        "live_projection": 0.25,
+        "previous_projection": 0.5
+      },
+      "expected": {
+        "lower_bound": 0.0,
+        "upper_bound": 1.0,
+        "volume01": 0.25,
+        "phase": "exhale",
+        "tracking01": 1.0,
+        "quality": "stable"
+      },
+      "tolerance": {
+        "absolute": 0.000001
+      }
+    }
+  ],
+  "damaged_cases": [
+    {
+      "case_id": "case.projected_motion_breath.flat_calibration",
+      "input": {
+        "calibration_projection": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "live_projection": 0.5
+      },
+      "expected_issue_code": "issue.calibration_invalid",
+      "reason": "Calibration bounds must span a positive range."
+    },
+    {
+      "case_id": "case.projected_motion_breath.stale_source",
+      "input": {
+        "sample_age_s": 1.0,
+        "stale_timeout_s": 0.5
+      },
+      "expected_issue_code": "issue.source_stale",
+      "reason": "The processor must reject stale source samples before normalization."
+    }
+  ]
+}

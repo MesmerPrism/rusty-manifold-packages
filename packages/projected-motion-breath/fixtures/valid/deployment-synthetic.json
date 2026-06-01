@@ -1,0 +1,39 @@
+{
+  "$schema": "rusty.manifold.deployment.manifest.v1",
+  "deployment_id": "deployment.projected_motion_breath_synthetic",
+  "target_host_id": "host.synthetic",
+  "package_id": "package.projected_motion_breath",
+  "selected_modules": [
+    "module.motion.object_pose_provider",
+    "module.motion.vector_provider",
+    "module.breath.projected_motion",
+    "module.breath.dynamics",
+    "module.breath.feedback_sink"
+  ],
+  "selected_backends": [
+    {
+      "module_id": "module.motion.object_pose_provider",
+      "backend_id": "backend.synthetic"
+    },
+    {
+      "module_id": "module.motion.vector_provider",
+      "backend_id": "backend.synthetic"
+    },
+    {
+      "module_id": "module.breath.projected_motion",
+      "backend_id": "backend.synthetic"
+    },
+    {
+      "module_id": "module.breath.dynamics",
+      "backend_id": "backend.synthetic"
+    },
+    {
+      "module_id": "module.breath.feedback_sink",
+      "backend_id": "backend.synthetic"
+    }
+  ],
+  "endpoint_id": "endpoint.control_loopback",
+  "security_policy": "policy.local_process_only",
+  "artifact_policy": "policy.no_artifacts",
+  "session_output_policy": "policy.session_summary_only"
+}

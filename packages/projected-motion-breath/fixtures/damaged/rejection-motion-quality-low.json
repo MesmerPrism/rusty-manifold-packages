@@ -1,0 +1,8 @@
+{
+  "$schema": "rusty.manifold.command.rejection.v1",
+  "request_id": "request.projected_motion_breath.low_quality",
+  "command_id": "command.breath.begin_calibration",
+  "rejection_code": "rejection.motion_quality_low",
+  "retryable": true,
+  "reason": "The source stream quality is below the profile threshold."
+}

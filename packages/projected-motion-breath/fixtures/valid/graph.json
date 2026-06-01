@@ -1,0 +1,68 @@
+{
+  "$schema": "rusty.manifold.graph.manifest.v1",
+  "graph_id": "graph.projected_motion_breath",
+  "graph_revision": 1,
+  "nodes": [
+    {
+      "node_id": "node.object_pose_provider",
+      "module_id": "module.motion.object_pose_provider"
+    },
+    {
+      "node_id": "node.vector_provider",
+      "module_id": "module.motion.vector_provider"
+    },
+    {
+      "node_id": "node.projected_motion_breath",
+      "module_id": "module.breath.projected_motion"
+    },
+    {
+      "node_id": "node.breath_dynamics",
+      "module_id": "module.breath.dynamics"
+    },
+    {
+      "node_id": "node.feedback_sink",
+      "module_id": "module.breath.feedback_sink"
+    }
+  ],
+  "edges": [
+    {
+      "edge_id": "edge.object_pose_to_breath",
+      "source_node_id": "node.object_pose_provider",
+      "source_stream_id": "stream.motion.object_pose",
+      "target_node_id": "node.projected_motion_breath",
+      "target_input_id": "stream.motion.object_pose"
+    },
+    {
+      "edge_id": "edge.vector_to_breath",
+      "source_node_id": "node.vector_provider",
+      "source_stream_id": "stream.motion.vector3",
+      "target_node_id": "node.projected_motion_breath",
+      "target_input_id": "stream.motion.vector3"
+    },
+    {
+      "edge_id": "edge.breath_to_dynamics",
+      "source_node_id": "node.projected_motion_breath",
+      "source_stream_id": "stream.breath.volume",
+      "target_node_id": "node.breath_dynamics",
+      "target_input_id": "stream.breath.volume"
+    },
+    {
+      "edge_id": "edge.breath_to_feedback",
+      "source_node_id": "node.projected_motion_breath",
+      "source_stream_id": "stream.breath.volume",
+      "target_node_id": "node.feedback_sink",
+      "target_input_id": "stream.breath.volume"
+    },
+    {
+      "edge_id": "edge.dynamics_to_feedback",
+      "source_node_id": "node.breath_dynamics",
+      "source_stream_id": "stream.breath.dynamics",
+      "target_node_id": "node.feedback_sink",
+      "target_input_id": "stream.breath.dynamics"
+    }
+  ],
+  "required_capabilities": [
+    "manifold.graph.run",
+    "manifold.module.control"
+  ]
+}

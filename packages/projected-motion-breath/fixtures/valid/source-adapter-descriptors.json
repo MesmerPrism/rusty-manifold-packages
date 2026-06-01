@@ -1,0 +1,134 @@
+{
+  "$schema": "rusty.manifold.projected_motion_breath.source_adapter_descriptors.v1",
+  "descriptor_set_id": "descriptor_set.projected_motion_breath.source_adapters.synthetic",
+  "package_id": "package.projected_motion_breath",
+  "target_module_id": "module.breath.projected_motion",
+  "execution_policy": "not_executed.schema_descriptors_only",
+  "runtime_execution_performed": false,
+  "platform_execution_performed": false,
+  "device_required": false,
+  "source_adapters": [
+    {
+      "adapter_id": "adapter.projected_motion_breath.object_pose_generic",
+      "source_kind": "object_pose",
+      "source_shape": "rotation_position_pose",
+      "input_kind": "pose",
+      "module_id": "module.motion.object_pose_provider",
+      "output_stream_id": "stream.motion.object_pose",
+      "sample_value_shape": {
+        "position": "vec3_meters",
+        "rotation": "unit_quaternion",
+        "tracking01": "number_0_1",
+        "timestamp_ns": "monotonic_i64"
+      },
+      "projection_role": "primary_pose_projection_source",
+      "coordinate_frame_policy": "source_declared_frame_with_profile_axis",
+      "timestamp_policy": "monotonic_source_timestamp_required",
+      "quality_fields": [
+        "tracking01",
+        "sample_age_s"
+      ],
+      "transport_kind": "descriptor_only",
+      "requires_platform_sdk": false,
+      "requires_device_api": false,
+      "runtime_adapter_included": false
+    },
+    {
+      "adapter_id": "adapter.projected_motion_breath.vector_motion_generic",
+      "source_kind": "vector_motion",
+      "source_shape": "vector3_motion_or_acceleration",
+      "input_kind": "vector3",
+      "module_id": "module.motion.vector_provider",
+      "output_stream_id": "stream.motion.vector3",
+      "sample_value_shape": {
+        "vector": "vec3_source_units",
+        "quality01": "number_0_1",
+        "timestamp_ns": "monotonic_i64"
+      },
+      "projection_role": "primary_vector_projection_source",
+      "coordinate_frame_policy": "source_declared_axis_with_profile_fallback",
+      "timestamp_policy": "monotonic_source_timestamp_required",
+      "quality_fields": [
+        "quality01",
+        "sample_age_s"
+      ],
+      "transport_kind": "descriptor_only",
+      "requires_platform_sdk": false,
+      "requires_device_api": false,
+      "runtime_adapter_included": false
+    },
+    {
+      "adapter_id": "adapter.projected_motion_breath.xr_controller_pose_shape",
+      "source_kind": "xr_controller_pose",
+      "source_shape": "tracked_controller_rotation_position",
+      "input_kind": "pose",
+      "module_id": "module.motion.object_pose_provider",
+      "output_stream_id": "stream.motion.object_pose",
+      "sample_value_shape": {
+        "position": "vec3_meters",
+        "rotation": "unit_quaternion",
+        "tracking01": "number_0_1",
+        "timestamp_ns": "monotonic_i64"
+      },
+      "projection_role": "pose_source_shape_example",
+      "coordinate_frame_policy": "controller_local_axis_mapped_by_profile",
+      "timestamp_policy": "monotonic_source_timestamp_required",
+      "quality_fields": [
+        "tracking01",
+        "sample_age_s"
+      ],
+      "transport_kind": "descriptor_only",
+      "requires_platform_sdk": false,
+      "requires_device_api": false,
+      "runtime_adapter_included": false
+    },
+    {
+      "adapter_id": "adapter.projected_motion_breath.wearable_acceleration_shape",
+      "source_kind": "wearable_acceleration",
+      "source_shape": "body_worn_acceleration_vector",
+      "input_kind": "vector3",
+      "module_id": "module.motion.vector_provider",
+      "output_stream_id": "stream.motion.vector3",
+      "sample_value_shape": {
+        "vector": "vec3_acceleration",
+        "quality01": "number_0_1",
+        "timestamp_ns": "monotonic_i64"
+      },
+      "projection_role": "vector_source_shape_example",
+      "coordinate_frame_policy": "sensor_axis_mapped_by_profile",
+      "timestamp_policy": "monotonic_source_timestamp_required",
+      "quality_fields": [
+        "quality01",
+        "sample_age_s"
+      ],
+      "transport_kind": "descriptor_only",
+      "requires_platform_sdk": false,
+      "requires_device_api": false,
+      "runtime_adapter_included": false
+    },
+    {
+      "adapter_id": "adapter.projected_motion_breath.external_patch_stream_bridge_shape",
+      "source_kind": "external_patch_stream_bridge",
+      "source_shape": "patch_channel_pose_or_vector",
+      "input_kind": "vector3",
+      "module_id": "module.motion.vector_provider",
+      "output_stream_id": "stream.motion.vector3",
+      "sample_value_shape": {
+        "channel_values": "named_float_channels",
+        "quality01": "number_0_1",
+        "timestamp_ns": "monotonic_i64"
+      },
+      "projection_role": "bridge_source_shape_example",
+      "coordinate_frame_policy": "bridge_declared_axis_mapped_by_profile",
+      "timestamp_policy": "monotonic_source_timestamp_required",
+      "quality_fields": [
+        "quality01",
+        "sample_age_s"
+      ],
+      "transport_kind": "descriptor_only",
+      "requires_platform_sdk": false,
+      "requires_device_api": false,
+      "runtime_adapter_included": false
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "rusty.manifold.stream.manifest.v1",
+  "stream_id": "stream.breath.feedback_state",
+  "source_module_id": "module.breath.feedback_sink",
+  "semantic_family": "feedback.breath",
+  "sample_schema": "rusty.manifold.sample.feedback_state.v1",
+  "rate_class": "evented",
+  "timestamp_domains": [
+    "clock.host_monotonic"
+  ],
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "transport_offers": [],
+  "subscription": {
+    "ui_subscribable": true,
+    "max_subscribers": 4
+  }
+}

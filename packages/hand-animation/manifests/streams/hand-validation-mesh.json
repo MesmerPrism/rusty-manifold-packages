@@ -1,0 +1,21 @@
+{
+  "$schema": "rusty.manifold.stream.manifest.v1",
+  "stream_id": "stream.hand.validation_mesh",
+  "source_module_id": "module.hand_motion.provider",
+  "semantic_family": "hand.validation_mesh",
+  "sample_schema": "rusty.matter.hand.validation_mesh_frame.v1",
+  "rate_class": "burst",
+  "timestamp_domains": [
+    "clock.source_device",
+    "clock.host_monotonic"
+  ],
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "transport_offers": [],
+  "subscription": {
+    "ui_subscribable": false,
+    "max_subscribers": 2
+  }
+}

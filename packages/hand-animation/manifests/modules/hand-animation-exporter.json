@@ -1,0 +1,50 @@
+{
+  "$schema": "rusty.manifold.module.manifest.v1",
+  "module_id": "module.hand_animation.exporter",
+  "module_kind": "sink",
+  "label": "Hand Animation Exporter",
+  "version": "0.1.0",
+  "lifecycle_states": [
+    "available",
+    "starting",
+    "running",
+    "stopping",
+    "stopped",
+    "failed"
+  ],
+  "provides_streams": [
+    "stream.hand.export_report"
+  ],
+  "consumes_streams": [
+    "stream.hand.rig_capture",
+    "stream.hand.joint_frame",
+    "stream.hand.validation_mesh",
+    "stream.mesh.coordinate_map"
+  ],
+  "accepted_commands": [
+    "command.hand_animation.export"
+  ],
+  "required_capabilities": [
+    "manifold.module.control",
+    "manifold.export.control"
+  ],
+  "clock_policy": {
+    "source_domain": "clock.host_monotonic",
+    "correlation_required": true
+  },
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "platform_support": [
+    "backend.synthetic",
+    "backend.replay",
+    "backend.desktop_host"
+  ],
+  "issue_codes": [
+    "issue.export_input_missing",
+    "issue.export_validation_failed",
+    "issue.export_artifact_write_failed",
+    "issue.export_parseback_failed"
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "$schema": "rusty.manifold.projected_motion_breath.adapter_normalization_case.v1",
+  "case_id": "case.projected_motion_breath.normalize.damaged.missing_channel",
+  "package_id": "package.projected_motion_breath",
+  "binding_path": "fixtures/valid/source-binding-synthetic.json",
+  "source_payload_kind": "external_patch_channels",
+  "input": {
+    "source_id": "source.synthetic.patch_stream",
+    "sample_time_s": 14.0,
+    "host_time_s": 14.012,
+    "frame_id": "frame.synthetic.patch",
+    "channel_values": {
+      "breath_x": 0.2,
+      "breath_y": 0.4
+    },
+    "channel_map": {
+      "x": "breath_x",
+      "y": "breath_y",
+      "z": "breath_z"
+    },
+    "units": "normalized_patch_units",
+    "quality01": 0.91
+  },
+  "expected_sample_kind": "vector_motion",
+  "expected": {
+    "source_id": "source.synthetic.patch_stream",
+    "sample_time_s": 14.0,
+    "host_time_s": 14.012,
+    "frame_id": "frame.synthetic.patch",
+    "vector3": [
+      0.2,
+      0.4,
+      0.0
+    ],
+    "units": "normalized_patch_units",
+    "quality01": 0.91
+  },
+  "execution_policy": "not_executed.fixture_normalization_only",
+  "runtime_execution_performed": false,
+  "platform_execution_performed": false,
+  "device_required": false,
+  "expected_issue_code": "issue.adapter_payload_invalid"
+}

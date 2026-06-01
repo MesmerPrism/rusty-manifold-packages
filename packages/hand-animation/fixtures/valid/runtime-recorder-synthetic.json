@@ -1,0 +1,18 @@
+{
+  "$schema": "rusty.manifold.module.runtime_state.v1",
+  "module_id": "module.hand_motion.recorder",
+  "runtime_revision": 1,
+  "lifecycle": "running",
+  "health": "healthy",
+  "selected_backend": "backend.synthetic",
+  "active_streams": [
+    "stream.hand.recording_status"
+  ],
+  "active_commands": [
+    "command.hand_record.prepare",
+    "command.hand_record.start",
+    "command.hand_record.stop",
+    "command.hand_record.status"
+  ],
+  "issues": []
+}

@@ -1,0 +1,8 @@
+{
+  "$schema": "rusty.manifold.command.rejection.v1",
+  "request_id": "request.projected_motion_breath.flat_calibration",
+  "command_id": "command.breath.begin_calibration",
+  "rejection_code": "rejection.calibration_invalid",
+  "retryable": true,
+  "reason": "Accepted calibration samples did not span the required motion range."
+}

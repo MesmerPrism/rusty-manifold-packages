@@ -1,0 +1,8 @@
+{
+  "$schema": "rusty.manifold.command.rejection.v1",
+  "request_id": "request.projected_motion_breath.unsupported_projection",
+  "command_id": "command.breath.configure",
+  "rejection_code": "rejection.projection_unsupported",
+  "retryable": false,
+  "reason": "The requested projection mode is not supported by the selected input kind."
+}

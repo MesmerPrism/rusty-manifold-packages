@@ -1,0 +1,56 @@
+{
+  "$schema": "rusty.manifold.module.manifest.v1",
+  "module_id": "module.breath.projected_motion",
+  "module_kind": "processor",
+  "label": "Projected Motion Breath",
+  "version": "0.1.0",
+  "lifecycle_states": [
+    "available",
+    "running",
+    "calibrating",
+    "degraded",
+    "stopped",
+    "failed"
+  ],
+  "provides_streams": [
+    "stream.breath.volume"
+  ],
+  "consumes_streams": [
+    "stream.motion.object_pose",
+    "stream.motion.vector3"
+  ],
+  "accepted_commands": [
+    "command.breath.configure",
+    "command.breath.set_profile",
+    "command.breath.begin_calibration",
+    "command.breath.reset_calibration",
+    "command.breath.status"
+  ],
+  "required_capabilities": [
+    "manifold.module.control"
+  ],
+  "clock_policy": {
+    "source_domain": "clock.host_monotonic",
+    "correlation_required": true
+  },
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "platform_support": [
+    "backend.synthetic",
+    "backend.replay",
+    "backend.desktop_host",
+    "backend.mobile_device",
+    "backend.headset_device"
+  ],
+  "issue_codes": [
+    "issue.input_stream_missing",
+    "issue.profile_invalid",
+    "issue.calibration_required",
+    "issue.calibration_invalid",
+    "issue.motion_quality_low",
+    "issue.source_stale",
+    "issue.projection_unsupported"
+  ]
+}
