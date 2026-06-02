@@ -691,7 +691,7 @@ struct AdapterNormalizationCase {
     expected_issue_code: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 struct AdapterNormalizationInput {
     source_id: String,
     sample_time_s: f64,
@@ -719,7 +719,7 @@ struct AdapterNormalizationInput {
     channel_map: Option<AdapterChannelMap>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 struct AdapterChannelMap {
     x: String,
     y: String,
@@ -856,6 +856,16 @@ struct LiveRouteExpected {
 enum NormalizedAdapterSample {
     Rigid(RigidMotionSample),
     Vector(VectorMotionSample),
+}
+
+#[derive(Debug, Clone, Copy)]
+struct LiveRouteExecutionMode {
+    runtime_execution_performed: bool,
+    external_transport_used: bool,
+    live_sensor_used: bool,
+    headset_execution_performed: bool,
+    plan_only: bool,
+    validate_fixture_expected: bool,
 }
 
 pub fn validate_package_goldens(
@@ -1109,13 +1119,80 @@ pub fn run_live_route_self_test(
         .join("valid")
         .join("live-route-self-test.json");
     let fixture = read_live_route_fixture(&fixture_path)?;
+    let source_samples = fixture
+        .sources
+        .iter()
+        .map(|source| (source.source_stream_id.clone(), source.samples.clone()))
+        .collect();
+    run_live_route_with_source_samples(
+        package_root,
+        fixture,
+        source_samples,
+        Vec::new(),
+        LiveRouteExecutionMode {
+            runtime_execution_performed: true,
+            external_transport_used: false,
+            live_sensor_used: false,
+            headset_execution_performed: false,
+            plan_only: true,
+            validate_fixture_expected: true,
+        },
+    )
+}
+
+pub fn run_live_route_from_broker_events(
+    package_root: impl AsRef<Path>,
+    events_jsonl: impl AsRef<Path>,
+) -> Result<LiveRouteReport, ValidationError> {
+    let package_root = package_root.as_ref();
+    let fixture_path = package_root
+        .join("fixtures")
+        .join("valid")
+        .join("live-route-self-test.json");
+    let fixture = read_live_route_fixture(&fixture_path)?;
+    let (source_samples, event_issues) =
+        read_live_broker_event_samples(events_jsonl.as_ref(), &fixture)?;
+    run_live_route_with_source_samples(
+        package_root,
+        fixture,
+        source_samples,
+        event_issues,
+        LiveRouteExecutionMode {
+            runtime_execution_performed: true,
+            external_transport_used: true,
+            live_sensor_used: true,
+            headset_execution_performed: true,
+            plan_only: false,
+            validate_fixture_expected: false,
+        },
+    )
+}
+
+fn run_live_route_with_source_samples(
+    package_root: &Path,
+    fixture: LiveRouteFixture,
+    source_samples: BTreeMap<String, Vec<AdapterNormalizationInput>>,
+    event_issues: Vec<String>,
+    mode: LiveRouteExecutionMode,
+) -> Result<LiveRouteReport, ValidationError> {
     let mut issues = validate_live_route_fixture(&fixture);
+    issues.extend(event_issues);
     let mut source_routes = Vec::new();
     let mut breath_samples = Vec::new();
     let mut next_sequence_id = 1_u64;
 
     for source_fixture in &fixture.sources {
         let route_start_len = breath_samples.len();
+        let samples = source_samples
+            .get(&source_fixture.source_stream_id)
+            .map(Vec::as_slice)
+            .unwrap_or(&[]);
+        if samples.is_empty() {
+            issues.push(format!(
+                "{}:issue.source_samples_missing",
+                source_fixture.source_id
+            ));
+        }
         let binding_path = package_root.join(&source_fixture.binding_path);
         let binding = match read_source_binding(&binding_path) {
             Ok(binding) => binding,
@@ -1197,7 +1274,7 @@ pub fn run_live_route_self_test(
 
         let mut normalized_sample_count = 0_usize;
         let mut previous_projection = None;
-        for (sample_index, input) in source_fixture.samples.iter().enumerate() {
+        for (sample_index, input) in samples.iter().enumerate() {
             let normalized = match normalize_adapter_sample(
                 &binding,
                 &source_fixture.source_payload_kind,
@@ -1272,7 +1349,9 @@ pub fn run_live_route_self_test(
             }
         }
         let estimate_count = breath_samples.len().saturating_sub(route_start_len);
-        if estimate_count < source_fixture.expected_min_estimate_count {
+        if mode.validate_fixture_expected
+            && estimate_count < source_fixture.expected_min_estimate_count
+        {
             issues.push(format!(
                 "{}:issue.expected_estimate_count",
                 source_fixture.source_id
@@ -1286,7 +1365,7 @@ pub fn run_live_route_self_test(
             selected_adapter_id: binding.selected_adapter_id,
             selected_source_kind: binding.selected_source_kind,
             source_payload_kind: source_fixture.source_payload_kind.clone(),
-            sample_count: source_fixture.samples.len(),
+            sample_count: samples.len(),
             normalized_sample_count,
             estimate_count,
         });
@@ -1317,13 +1396,21 @@ pub fn run_live_route_self_test(
         })
         .collect();
 
-    issues.extend(validate_live_route_expected(
-        &fixture,
-        &source_routes,
-        &breath_samples,
-        &feedback_samples,
-        &receiver_receipts,
-    ));
+    if mode.validate_fixture_expected {
+        issues.extend(validate_live_route_expected(
+            &fixture,
+            &source_routes,
+            &breath_samples,
+            &feedback_samples,
+            &receiver_receipts,
+        ));
+    } else {
+        issues.extend(validate_live_broker_route_observed(
+            &source_routes,
+            &breath_samples,
+            &feedback_samples,
+        ));
+    }
     issues = dedup_issue_codes(issues);
     let status = if issues.is_empty() { "pass" } else { "fail" }.to_string();
 
@@ -1336,11 +1423,11 @@ pub fn run_live_route_self_test(
         normalized_stream_ids: fixture.normalized_stream_ids,
         output_stream_ids: fixture.output_stream_ids,
         processor_core_executed: true,
-        runtime_execution_performed: true,
-        external_transport_used: false,
-        live_sensor_used: false,
-        headset_execution_performed: false,
-        plan_only: true,
+        runtime_execution_performed: mode.runtime_execution_performed,
+        external_transport_used: mode.external_transport_used,
+        live_sensor_used: mode.live_sensor_used,
+        headset_execution_performed: mode.headset_execution_performed,
+        plan_only: mode.plan_only,
         source_routes,
         breath_samples,
         feedback_samples,
@@ -1352,6 +1439,300 @@ pub fn run_live_route_self_test(
         receiver_receipts,
         issues,
     })
+}
+
+fn read_live_broker_event_samples(
+    path: &Path,
+    fixture: &LiveRouteFixture,
+) -> Result<
+    (
+        BTreeMap<String, Vec<AdapterNormalizationInput>>,
+        Vec<String>,
+    ),
+    ValidationError,
+> {
+    let text = fs::read_to_string(path).map_err(|source| ValidationError::Io {
+        path: path.to_path_buf(),
+        source,
+    })?;
+    let mut samples_by_stream: BTreeMap<String, Vec<AdapterNormalizationInput>> = BTreeMap::new();
+    let mut issues = Vec::new();
+    for (line_index, line) in text.lines().enumerate() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        let event: serde_json::Value =
+            serde_json::from_str(line).map_err(|source| ValidationError::Json {
+                path: path.to_path_buf(),
+                source,
+            })?;
+        let payload = event.get("payload").unwrap_or(&serde_json::Value::Null);
+        let Some(stream) = event
+            .get("stream")
+            .and_then(serde_json::Value::as_str)
+            .or_else(|| payload.get("stream_id").and_then(serde_json::Value::as_str))
+        else {
+            continue;
+        };
+        if !fixture
+            .sources
+            .iter()
+            .any(|source| source.source_stream_id == stream)
+        {
+            continue;
+        }
+        let converted = match stream {
+            EXTERNAL_STREAM_POLAR_ACC => broker_polar_acc_samples(&event, payload),
+            STREAM_OBJECT_POSE => {
+                broker_object_pose_sample(&event, payload).map(|sample| vec![sample])
+            }
+            _ => Err("issue.broker_event_stream_unsupported"),
+        };
+        match converted {
+            Ok(converted) => samples_by_stream
+                .entry(stream.to_string())
+                .or_default()
+                .extend(converted),
+            Err(issue) => issues.push(format!(
+                "broker_event.line_{}:{stream}:{issue}",
+                line_index + 1
+            )),
+        }
+    }
+    Ok((samples_by_stream, issues))
+}
+
+fn broker_polar_acc_samples(
+    event: &serde_json::Value,
+    payload: &serde_json::Value,
+) -> Result<Vec<AdapterNormalizationInput>, &'static str> {
+    let Some(samples_mg) = payload
+        .get("samples_mg")
+        .and_then(serde_json::Value::as_array)
+    else {
+        return Err("issue.broker_event_polar_samples_missing");
+    };
+    let base_sample_time_s = ns_to_seconds(
+        first_i64(payload, &["sample_time_unix_ns", "source_time_unix_ns"])
+            .or_else(|| first_i64(event, &["broker_time_unix_ns"]))
+            .unwrap_or(0),
+    );
+    let host_time_s = ns_to_seconds(
+        first_i64(
+            payload,
+            &["broker_receive_time_unix_ns", "client_send_time_unix_ns"],
+        )
+        .or_else(|| first_i64(event, &["broker_time_unix_ns"]))
+        .unwrap_or(0),
+    );
+    let mut converted = Vec::new();
+    for (index, sample) in samples_mg.iter().enumerate() {
+        let Some(vector_mg) = json_array3(sample) else {
+            return Err("issue.broker_event_polar_sample_invalid");
+        };
+        converted.push(AdapterNormalizationInput {
+            source_id: "source.polar_h10.acc.live_broker".to_string(),
+            sample_time_s: base_sample_time_s + (index as f64 * 0.005),
+            host_time_s,
+            frame_id: "frame.polar_h10.body".to_string(),
+            position_m: None,
+            orientation_xyzw: None,
+            connected: None,
+            tracked: None,
+            tracking01: None,
+            vector3: Some([
+                vector_mg[0] * 0.001,
+                vector_mg[1] * 0.001,
+                vector_mg[2] * 0.001,
+            ]),
+            units: Some("g".to_string()),
+            quality01: Some(unit_interval_or(
+                payload,
+                &["quality01", "tracking01"],
+                0.96,
+            )),
+            channel_values: BTreeMap::new(),
+            channel_map: None,
+        });
+    }
+    Ok(converted)
+}
+
+fn broker_object_pose_sample(
+    event: &serde_json::Value,
+    payload: &serde_json::Value,
+) -> Result<AdapterNormalizationInput, &'static str> {
+    let Some(position_m) = object_pose_position(payload) else {
+        return Err("issue.broker_event_pose_position_missing");
+    };
+    let Some(orientation_xyzw) = object_pose_orientation(payload) else {
+        return Err("issue.broker_event_pose_orientation_missing");
+    };
+    let sample_time_s = ns_to_seconds(
+        first_i64(payload, &["sample_time_unix_ns", "source_time_unix_ns"])
+            .or_else(|| first_i64(event, &["broker_time_unix_ns"]))
+            .unwrap_or(0),
+    );
+    let host_time_s = ns_to_seconds(
+        first_i64(
+            payload,
+            &["broker_receive_time_unix_ns", "client_send_time_unix_ns"],
+        )
+        .or_else(|| first_i64(event, &["broker_time_unix_ns"]))
+        .unwrap_or(0),
+    );
+    Ok(AdapterNormalizationInput {
+        source_id: "source.downstream.controller_pose.live_broker".to_string(),
+        sample_time_s,
+        host_time_s,
+        frame_id: payload
+            .get("reference_space")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or("frame.headset.stage")
+            .to_string(),
+        position_m: Some(position_m),
+        orientation_xyzw: Some(orientation_xyzw),
+        connected: Some(
+            payload
+                .get("connected")
+                .and_then(serde_json::Value::as_bool)
+                .unwrap_or(true),
+        ),
+        tracked: Some(
+            payload
+                .get("tracked")
+                .and_then(serde_json::Value::as_bool)
+                .unwrap_or(true),
+        ),
+        tracking01: Some(unit_interval_or(payload, &["tracking01", "quality01"], 1.0)),
+        vector3: None,
+        units: None,
+        quality01: None,
+        channel_values: BTreeMap::new(),
+        channel_map: None,
+    })
+}
+
+fn validate_live_broker_route_observed(
+    source_routes: &[LiveSourceRouteReport],
+    breath_samples: &[LiveBreathSample],
+    feedback_samples: &[LiveFeedbackSample],
+) -> Vec<String> {
+    let mut issues = Vec::new();
+    if source_routes.len() < 2 {
+        issues.push("issue.live_broker_route_source_route_count".to_string());
+    }
+    for route in source_routes {
+        if route.sample_count == 0 {
+            issues.push(format!(
+                "{}:issue.live_broker_samples_missing",
+                route.source_id
+            ));
+        } else if route.estimate_count == 0 {
+            issues.push(format!(
+                "{}:issue.live_broker_estimates_missing",
+                route.source_id
+            ));
+        }
+    }
+    if breath_samples.is_empty() {
+        issues.push("issue.live_broker_breath_samples_missing".to_string());
+    }
+    if feedback_samples.is_empty() {
+        issues.push("issue.live_broker_feedback_samples_missing".to_string());
+    }
+    issues
+}
+
+fn object_pose_position(payload: &serde_json::Value) -> Option<[f64; 3]> {
+    payload
+        .get("position_m")
+        .and_then(json_vec3)
+        .or_else(|| payload.get("position").and_then(json_vec3))
+        .or_else(|| {
+            payload
+                .get("pose")
+                .and_then(|pose| pose.get("position_m"))
+                .and_then(json_vec3)
+        })
+}
+
+fn object_pose_orientation(payload: &serde_json::Value) -> Option<[f64; 4]> {
+    payload
+        .get("orientation_xyzw")
+        .and_then(json_array4)
+        .or_else(|| {
+            payload
+                .get("pose")
+                .and_then(|pose| pose.get("orientation_xyzw"))
+                .and_then(json_array4)
+        })
+}
+
+fn json_vec3(value: &serde_json::Value) -> Option<[f64; 3]> {
+    json_array3(value).or_else(|| json_object3(value))
+}
+
+fn json_array3(value: &serde_json::Value) -> Option<[f64; 3]> {
+    let array = value.as_array()?;
+    if array.len() != 3 {
+        return None;
+    }
+    Some([array[0].as_f64()?, array[1].as_f64()?, array[2].as_f64()?])
+}
+
+fn json_object3(value: &serde_json::Value) -> Option<[f64; 3]> {
+    let object = value.as_object()?;
+    let x = object
+        .get("x")
+        .or_else(|| object.get("x_m"))
+        .and_then(serde_json::Value::as_f64)?;
+    let y = object
+        .get("y")
+        .or_else(|| object.get("y_m"))
+        .and_then(serde_json::Value::as_f64)?;
+    let z = object
+        .get("z")
+        .or_else(|| object.get("z_m"))
+        .and_then(serde_json::Value::as_f64)?;
+    Some([x, y, z])
+}
+
+fn json_array4(value: &serde_json::Value) -> Option<[f64; 4]> {
+    let array = value.as_array()?;
+    if array.len() != 4 {
+        return None;
+    }
+    Some([
+        array[0].as_f64()?,
+        array[1].as_f64()?,
+        array[2].as_f64()?,
+        array[3].as_f64()?,
+    ])
+}
+
+fn first_i64(value: &serde_json::Value, keys: &[&str]) -> Option<i64> {
+    keys.iter()
+        .find_map(|key| value.get(*key).and_then(json_i64))
+}
+
+fn json_i64(value: &serde_json::Value) -> Option<i64> {
+    value
+        .as_i64()
+        .or_else(|| value.as_u64().and_then(|value| i64::try_from(value).ok()))
+}
+
+fn ns_to_seconds(ns: i64) -> f64 {
+    ns as f64 / 1_000_000_000.0
+}
+
+fn unit_interval_or(payload: &serde_json::Value, keys: &[&str], default: f64) -> f64 {
+    keys.iter()
+        .find_map(|key| payload.get(*key).and_then(serde_json::Value::as_f64))
+        .filter(|value| value.is_finite())
+        .map(|value| value.clamp(0.0, 1.0))
+        .unwrap_or(default)
 }
 
 fn read_golden(path: &Path) -> Result<GoldenFixture, ValidationError> {
@@ -2667,6 +3048,66 @@ mod tests {
             .receiver_receipts
             .iter()
             .all(|receipt| receipt.command == RECEIVER_COMMAND_BREATH_FEEDBACK_RECEIVED));
+    }
+
+    #[test]
+    fn runs_live_route_from_broker_event_jsonl() {
+        let package_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let events_path = std::env::temp_dir().join(format!(
+            "projected-motion-breath-live-route-events-{}.jsonl",
+            std::process::id()
+        ));
+        let mut events = Vec::new();
+        events.push(
+            serde_json::json!({
+                "type": "stream_event",
+                "stream": EXTERNAL_STREAM_POLAR_ACC,
+                "broker_time_unix_ns": 1_010_000_000_i64,
+                "payload": {
+                    "stream_id": EXTERNAL_STREAM_POLAR_ACC,
+                    "sample_time_unix_ns": 1_000_000_000_i64,
+                    "broker_receive_time_unix_ns": 1_010_000_000_i64,
+                    "samples_mg": [[20, 200, -10], [20, 280, -10], [20, 180, -10]],
+                    "quality01": 0.96
+                }
+            })
+            .to_string(),
+        );
+        for (index, y) in [1.10, 1.16, 1.08].iter().enumerate() {
+            events.push(
+                serde_json::json!({
+                    "type": "stream_event",
+                    "stream": STREAM_OBJECT_POSE,
+                    "broker_time_unix_ns": 1_010_000_000_i64 + (index as i64 * 50_000_000),
+                    "payload": {
+                        "stream": STREAM_OBJECT_POSE,
+                        "sample_time_unix_ns": 1_000_000_000_i64 + (index as i64 * 50_000_000),
+                        "broker_receive_time_unix_ns": 1_010_000_000_i64 + (index as i64 * 50_000_000),
+                        "reference_space": "frame.headset.stage",
+                        "position_m": [0.15, y, -0.20],
+                        "orientation_xyzw": [0.0, 0.0, 0.0, 1.0],
+                        "connected": true,
+                        "tracked": true,
+                        "quality01": 0.98
+                    }
+                })
+                .to_string(),
+            );
+        }
+        fs::write(&events_path, events.join("\n")).expect("events jsonl writes");
+        let report = run_live_route_from_broker_events(&package_root, &events_path)
+            .expect("broker events load");
+        let _ = fs::remove_file(&events_path);
+        assert_eq!(report.status, "pass");
+        assert!(report.processor_core_executed);
+        assert!(report.runtime_execution_performed);
+        assert!(!report.plan_only);
+        assert!(report.external_transport_used);
+        assert!(report.live_sensor_used);
+        assert!(report.headset_execution_performed);
+        assert_eq!(report.breath_samples.len(), 6);
+        assert_eq!(report.feedback_samples.len(), 6);
+        assert_eq!(report.receiver_receipts.len(), 6);
     }
 
     #[test]
