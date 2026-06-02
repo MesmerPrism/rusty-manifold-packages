@@ -1676,9 +1676,18 @@ def projected_motion_source_binding_issue(
         return "issue.source_binding_stream_mismatch"
     if adapter.get("output_stream_id") != binding.get("selected_output_stream_id"):
         return "issue.source_binding_stream_mismatch"
-    if binding.get("source_stream_id") != adapter.get("output_stream_id"):
+    source_stream_supported = binding.get("source_stream_id") == adapter.get(
+        "output_stream_id"
+    ) or (
+        binding.get("selected_source_kind") == "wearable_acceleration"
+        and binding.get("source_stream_id") == "bio:polar_acc"
+    )
+    if not source_stream_supported:
         return "issue.source_binding_stream_mismatch"
-    if binding.get("source_stream_id") not in stream_ids:
+    if (
+        binding.get("source_stream_id") not in stream_ids
+        and binding.get("source_stream_id") != "bio:polar_acc"
+    ):
         return "issue.source_binding_stream_mismatch"
     profile_input_kinds = profile.get("input_kinds", [])
     if (
@@ -1792,6 +1801,7 @@ def source_payload_kind_matches(selected_source_kind: str, source_payload_kind: 
     return (selected_source_kind, source_payload_kind) in {
         ("object_pose", "object_pose"),
         ("vector_motion", "vector_motion"),
+        ("wearable_acceleration", "vector_motion"),
         ("external_patch_stream_bridge", "external_patch_channels"),
     }
 

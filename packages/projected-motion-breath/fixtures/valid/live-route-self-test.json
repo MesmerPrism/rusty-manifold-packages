@@ -1,0 +1,193 @@
+{
+  "$schema": "rusty.manifold.projected_motion_breath.live_route_fixture.v1",
+  "route_id": "route.projected_motion_breath.live_stream.polar_acc_controller_pose.self_test",
+  "package_id": "package.projected_motion_breath",
+  "target_module_id": "module.breath.projected_motion",
+  "execution_policy": "plan_only.synthetic_stream_events_no_transport",
+  "input_stream_ids": [
+    "bio:polar_acc",
+    "stream.motion.object_pose"
+  ],
+  "normalized_stream_ids": [
+    "stream.motion.vector3",
+    "stream.motion.object_pose"
+  ],
+  "output_stream_ids": [
+    "stream.breath.volume",
+    "stream.breath.feedback_state"
+  ],
+  "external_transport_used": false,
+  "live_sensor_used": false,
+  "headset_execution_performed": false,
+  "receiver": {
+    "receiver_id": "app.downstream_camera_shell.breath_feedback",
+    "subscription_command": "subscribe",
+    "subscription_stream_id": "stream.breath.feedback_state",
+    "receipt_command": "breath_feedback.received",
+    "receipt_schema": "rusty.manifold.breath.feedback_receipt.v1"
+  },
+  "sources": [
+    {
+      "source_id": "source.polar_h10.acc.synthetic_live_route",
+      "source_stream_id": "bio:polar_acc",
+      "binding_path": "fixtures/valid/source-binding-polar-acc.json",
+      "source_payload_kind": "vector_motion",
+      "expected_normalized_stream_id": "stream.motion.vector3",
+      "expected_min_estimate_count": 3,
+      "projection": {
+        "axis": [
+          0.0,
+          1.0,
+          0.0
+        ]
+      },
+      "calibration": {
+        "projection_values": [
+          0.0,
+          0.1,
+          0.2,
+          0.3,
+          0.4
+        ]
+      },
+      "samples": [
+        {
+          "source_id": "source.polar_h10.acc.synthetic_live_route",
+          "sample_time_s": 1.0,
+          "host_time_s": 1.01,
+          "frame_id": "frame.polar_h10.body",
+          "vector3": [
+            0.02,
+            0.2,
+            -0.01
+          ],
+          "units": "m_s2",
+          "quality01": 0.96
+        },
+        {
+          "source_id": "source.polar_h10.acc.synthetic_live_route",
+          "sample_time_s": 1.05,
+          "host_time_s": 1.06,
+          "frame_id": "frame.polar_h10.body",
+          "vector3": [
+            0.02,
+            0.28,
+            -0.01
+          ],
+          "units": "m_s2",
+          "quality01": 0.96
+        },
+        {
+          "source_id": "source.polar_h10.acc.synthetic_live_route",
+          "sample_time_s": 1.1,
+          "host_time_s": 1.11,
+          "frame_id": "frame.polar_h10.body",
+          "vector3": [
+            0.02,
+            0.18,
+            -0.01
+          ],
+          "units": "m_s2",
+          "quality01": 0.96
+        }
+      ]
+    },
+    {
+      "source_id": "source.downstream.controller_pose.synthetic_live_route",
+      "source_stream_id": "stream.motion.object_pose",
+      "binding_path": "fixtures/valid/source-binding-headset-controller-pose.json",
+      "source_payload_kind": "object_pose",
+      "expected_normalized_stream_id": "stream.motion.object_pose",
+      "expected_min_estimate_count": 3,
+      "projection": {
+        "axis": [
+          0.0,
+          1.0,
+          0.0
+        ]
+      },
+      "calibration": {
+        "projection_values": [
+          1.0,
+          1.05,
+          1.1,
+          1.15,
+          1.2
+        ]
+      },
+      "samples": [
+        {
+          "source_id": "source.downstream.controller_pose.synthetic_live_route",
+          "sample_time_s": 1.0,
+          "host_time_s": 1.01,
+          "frame_id": "frame.headset.stage",
+          "position_m": [
+            0.15,
+            1.1,
+            -0.2
+          ],
+          "orientation_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "connected": true,
+          "tracked": true,
+          "tracking01": 0.98
+        },
+        {
+          "source_id": "source.downstream.controller_pose.synthetic_live_route",
+          "sample_time_s": 1.05,
+          "host_time_s": 1.06,
+          "frame_id": "frame.headset.stage",
+          "position_m": [
+            0.15,
+            1.16,
+            -0.2
+          ],
+          "orientation_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "connected": true,
+          "tracked": true,
+          "tracking01": 0.98
+        },
+        {
+          "source_id": "source.downstream.controller_pose.synthetic_live_route",
+          "sample_time_s": 1.1,
+          "host_time_s": 1.11,
+          "frame_id": "frame.headset.stage",
+          "position_m": [
+            0.15,
+            1.08,
+            -0.2
+          ],
+          "orientation_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "connected": true,
+          "tracked": true,
+          "tracking01": 0.98
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "min_source_route_count": 2,
+    "min_breath_sample_count": 6,
+    "min_feedback_sample_count": 6,
+    "min_receipt_count": 6,
+    "required_phases": [
+      "pause",
+      "inhale",
+      "exhale"
+    ]
+  }
+}

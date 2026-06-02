@@ -9,9 +9,14 @@ pub const MODULE_PROJECTED_MOTION_BREATH: &str = "module.breath.projected_motion
 pub const STREAM_OBJECT_POSE: &str = "stream.motion.object_pose";
 pub const STREAM_VECTOR3: &str = "stream.motion.vector3";
 pub const STREAM_BREATH_VOLUME: &str = "stream.breath.volume";
+pub const STREAM_BREATH_FEEDBACK_STATE: &str = "stream.breath.feedback_state";
+pub const EXTERNAL_STREAM_POLAR_ACC: &str = "bio:polar_acc";
 pub const PACKAGE_PROJECTED_MOTION_BREATH: &str = "package.projected_motion_breath";
 pub const GOLDEN_PROJECTED_MOTION: &str =
     "golden.projected_motion_breath.pose_and_vector_projection";
+pub const RECEIVER_COMMAND_SUBSCRIBE: &str = "subscribe";
+pub const RECEIVER_COMMAND_BREATH_FEEDBACK_RECEIVED: &str = "breath_feedback.received";
+pub const BREATH_FEEDBACK_RECEIPT_SCHEMA: &str = "rusty.manifold.breath.feedback_receipt.v1";
 pub const COMMAND_BREATH_CONFIGURE: &str = "command.breath.configure";
 pub const COMMAND_BREATH_SET_PROFILE: &str = "command.breath.set_profile";
 pub const COMMAND_BREATH_BEGIN_CALIBRATION: &str = "command.breath.begin_calibration";
@@ -26,6 +31,10 @@ pub const CONTROLLER_PREFLIGHT_FIXTURE_SCHEMA: &str =
     "rusty.manifold.projected_motion_breath.controller_preflight_fixture.v1";
 pub const CONTROLLER_PREFLIGHT_REPORT_SCHEMA: &str =
     "rusty.manifold.projected_motion_breath.controller_preflight_report.v1";
+pub const LIVE_ROUTE_FIXTURE_SCHEMA: &str =
+    "rusty.manifold.projected_motion_breath.live_route_fixture.v1";
+pub const LIVE_ROUTE_REPORT_SCHEMA: &str =
+    "rusty.manifold.projected_motion_breath.live_route_report.v1";
 
 const DEFAULT_STALE_TIMEOUT_S: f64 = 0.5;
 const DEFAULT_DELTA_THRESHOLD: f64 = 0.000_001;
@@ -308,6 +317,89 @@ pub struct ControllerPreflightEstimate {
     pub phase: String,
     pub tracking01: f64,
     pub quality: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct LiveRouteReport {
+    pub schema: &'static str,
+    pub package_root: String,
+    pub status: String,
+    pub route_id: String,
+    pub input_stream_ids: Vec<String>,
+    pub normalized_stream_ids: Vec<String>,
+    pub output_stream_ids: Vec<String>,
+    pub processor_core_executed: bool,
+    pub runtime_execution_performed: bool,
+    pub external_transport_used: bool,
+    pub live_sensor_used: bool,
+    pub headset_execution_performed: bool,
+    pub plan_only: bool,
+    pub source_routes: Vec<LiveSourceRouteReport>,
+    pub breath_samples: Vec<LiveBreathSample>,
+    pub feedback_samples: Vec<LiveFeedbackSample>,
+    pub receiver_subscription: ReceiverBreathSubscriptionPlan,
+    pub receiver_receipts: Vec<ReceiverBreathReceiptPlan>,
+    pub issues: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct LiveSourceRouteReport {
+    pub source_id: String,
+    pub source_stream_id: String,
+    pub normalized_stream_id: String,
+    pub binding_id: String,
+    pub selected_adapter_id: String,
+    pub selected_source_kind: String,
+    pub source_payload_kind: String,
+    pub sample_count: usize,
+    pub normalized_sample_count: usize,
+    pub estimate_count: usize,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct LiveBreathSample {
+    pub sequence_id: u64,
+    pub source_id: String,
+    pub input_stream_id: String,
+    pub normalized_stream_id: String,
+    pub output_stream_id: String,
+    pub sample_index: usize,
+    pub sample_time_s: f64,
+    pub host_time_s: f64,
+    pub projection: f64,
+    pub volume01: f64,
+    pub phase: String,
+    pub tracking01: f64,
+    pub quality: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct LiveFeedbackSample {
+    pub sequence_id: u64,
+    pub stream_id: String,
+    pub source_breath_sequence_id: u64,
+    pub source_id: String,
+    pub sample_time_unix_ns: i64,
+    pub volume01: f64,
+    pub phase: String,
+    pub quality: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ReceiverBreathSubscriptionPlan {
+    pub command: String,
+    pub stream: String,
+    pub receiver_id: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ReceiverBreathReceiptPlan {
+    pub command: String,
+    pub schema: String,
+    pub received_stream: String,
+    pub received_sequence_id: u64,
+    pub receiver_id: String,
+    pub acknowledged: bool,
 }
 
 #[derive(Debug)]
@@ -706,6 +798,61 @@ struct ControllerPreflightExpected {
     manual_controller_trial_required: bool,
 }
 
+#[derive(Debug, Deserialize)]
+struct LiveRouteFixture {
+    #[serde(rename = "$schema")]
+    schema: String,
+    route_id: String,
+    package_id: String,
+    target_module_id: String,
+    execution_policy: String,
+    input_stream_ids: Vec<String>,
+    normalized_stream_ids: Vec<String>,
+    output_stream_ids: Vec<String>,
+    external_transport_used: bool,
+    live_sensor_used: bool,
+    headset_execution_performed: bool,
+    receiver: LiveRouteReceiverPlanFixture,
+    sources: Vec<LiveRouteSourceFixture>,
+    expected: LiveRouteExpected,
+}
+
+#[derive(Debug, Deserialize)]
+struct LiveRouteReceiverPlanFixture {
+    receiver_id: String,
+    subscription_command: String,
+    subscription_stream_id: String,
+    receipt_command: String,
+    receipt_schema: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct LiveRouteSourceFixture {
+    source_id: String,
+    source_stream_id: String,
+    binding_path: String,
+    source_payload_kind: String,
+    projection: ControllerPreflightProjection,
+    calibration: ControllerPreflightCalibration,
+    samples: Vec<AdapterNormalizationInput>,
+    expected_normalized_stream_id: String,
+    expected_min_estimate_count: usize,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct LiveRouteExpected {
+    #[serde(default)]
+    min_source_route_count: usize,
+    #[serde(default)]
+    min_breath_sample_count: usize,
+    #[serde(default)]
+    min_feedback_sample_count: usize,
+    #[serde(default)]
+    min_receipt_count: usize,
+    #[serde(default)]
+    required_phases: Vec<String>,
+}
+
 enum NormalizedAdapterSample {
     Rigid(RigidMotionSample),
     Vector(VectorMotionSample),
@@ -953,6 +1100,260 @@ pub fn run_controller_preflight(
     })
 }
 
+pub fn run_live_route_self_test(
+    package_root: impl AsRef<Path>,
+) -> Result<LiveRouteReport, ValidationError> {
+    let package_root = package_root.as_ref();
+    let fixture_path = package_root
+        .join("fixtures")
+        .join("valid")
+        .join("live-route-self-test.json");
+    let fixture = read_live_route_fixture(&fixture_path)?;
+    let mut issues = validate_live_route_fixture(&fixture);
+    let mut source_routes = Vec::new();
+    let mut breath_samples = Vec::new();
+    let mut next_sequence_id = 1_u64;
+
+    for source_fixture in &fixture.sources {
+        let route_start_len = breath_samples.len();
+        let binding_path = package_root.join(&source_fixture.binding_path);
+        let binding = match read_source_binding(&binding_path) {
+            Ok(binding) => binding,
+            Err(error) => {
+                issues.push(format!(
+                    "{}:issue.source_binding_read_failed:{error}",
+                    source_fixture.source_id
+                ));
+                continue;
+            }
+        };
+        if let Some(issue) = validate_source_binding(package_root, &binding) {
+            issues.push(format!("{}:{issue}", binding.binding_id));
+        }
+        if !source_payload_kind_matches(
+            &binding.selected_source_kind,
+            &source_fixture.source_payload_kind,
+        ) {
+            issues.push(format!(
+                "{}:issue.adapter_payload_kind_mismatch",
+                source_fixture.source_id
+            ));
+        }
+        if binding.source_stream_id != source_fixture.source_stream_id {
+            issues.push(format!(
+                "{}:issue.source_stream_binding_mismatch",
+                source_fixture.source_id
+            ));
+        }
+        if binding.selected_output_stream_id != source_fixture.expected_normalized_stream_id {
+            issues.push(format!(
+                "{}:issue.normalized_stream_binding_mismatch",
+                source_fixture.source_id
+            ));
+        }
+
+        let input_kind = match InputKind::parse(&binding.selected_input_kind) {
+            Ok(input_kind) => input_kind,
+            Err(issue) => {
+                issues.push(format!("{}:{}", source_fixture.source_id, issue.code()));
+                continue;
+            }
+        };
+        let profile = match read_profile(&package_root.join(&binding.profile_path)) {
+            Ok(profile) => profile,
+            Err(error) => {
+                issues.push(format!(
+                    "{}:issue.profile_read_failed:{error}",
+                    source_fixture.source_id
+                ));
+                continue;
+            }
+        };
+        if !validate_profile_document(&profile).is_empty() {
+            issues.push(format!(
+                "{}:issue.profile_invalid",
+                source_fixture.source_id
+            ));
+            continue;
+        }
+        let motion_profile = motion_profile_from_document(input_kind, &profile);
+        let tracker = match ProjectedMotionBreathTracker::calibrated(
+            motion_profile,
+            &source_fixture.calibration.projection_values,
+        ) {
+            Ok(tracker) => tracker,
+            Err(issue) => {
+                issues.push(format!("{}:{}", source_fixture.source_id, issue.code()));
+                continue;
+            }
+        };
+        let Some(axis) = normalized_axis(source_fixture.projection.axis) else {
+            issues.push(format!(
+                "{}:issue.projection_axis_invalid",
+                source_fixture.source_id
+            ));
+            continue;
+        };
+
+        let mut normalized_sample_count = 0_usize;
+        let mut previous_projection = None;
+        for (sample_index, input) in source_fixture.samples.iter().enumerate() {
+            let normalized = match normalize_adapter_sample(
+                &binding,
+                &source_fixture.source_payload_kind,
+                input,
+            ) {
+                Ok(sample) => sample,
+                Err(issue) => {
+                    issues.push(format!(
+                        "{}:sample.{sample_index}:{issue}",
+                        source_fixture.source_id
+                    ));
+                    continue;
+                }
+            };
+            normalized_sample_count += 1;
+            let (source_id, sample_time_s, host_time_s, projection, quality01) = match normalized {
+                NormalizedAdapterSample::Rigid(sample) => {
+                    let quality01 = if profile.quality.require_tracked
+                        && (!sample.connected || !sample.tracked)
+                    {
+                        0.0
+                    } else {
+                        sample.quality01
+                    };
+                    (
+                        sample.source_id,
+                        sample.sample_time_s,
+                        sample.host_time_s,
+                        dot3(sample.position_m, axis),
+                        quality01,
+                    )
+                }
+                NormalizedAdapterSample::Vector(sample) => (
+                    sample.source_id,
+                    sample.sample_time_s,
+                    sample.host_time_s,
+                    dot3(sample.vector3, axis),
+                    sample.quality01,
+                ),
+            };
+            let sample_age_s = (host_time_s - sample_time_s).max(0.0);
+            match tracker.estimate_from_projection(
+                projection,
+                previous_projection,
+                quality01,
+                sample_age_s,
+            ) {
+                Ok(estimate) => {
+                    previous_projection = Some(projection);
+                    breath_samples.push(LiveBreathSample {
+                        sequence_id: next_sequence_id,
+                        source_id,
+                        input_stream_id: source_fixture.source_stream_id.clone(),
+                        normalized_stream_id: binding.selected_output_stream_id.clone(),
+                        output_stream_id: STREAM_BREATH_VOLUME.to_string(),
+                        sample_index,
+                        sample_time_s,
+                        host_time_s,
+                        projection,
+                        volume01: estimate.volume01,
+                        phase: estimate.phase.as_str().to_string(),
+                        tracking01: estimate.tracking01,
+                        quality: estimate.quality,
+                    });
+                    next_sequence_id = next_sequence_id.saturating_add(1);
+                }
+                Err(issue) => issues.push(format!(
+                    "{}:sample.{sample_index}:{}",
+                    source_fixture.source_id,
+                    issue.code()
+                )),
+            }
+        }
+        let estimate_count = breath_samples.len().saturating_sub(route_start_len);
+        if estimate_count < source_fixture.expected_min_estimate_count {
+            issues.push(format!(
+                "{}:issue.expected_estimate_count",
+                source_fixture.source_id
+            ));
+        }
+        source_routes.push(LiveSourceRouteReport {
+            source_id: source_fixture.source_id.clone(),
+            source_stream_id: source_fixture.source_stream_id.clone(),
+            normalized_stream_id: binding.selected_output_stream_id,
+            binding_id: binding.binding_id,
+            selected_adapter_id: binding.selected_adapter_id,
+            selected_source_kind: binding.selected_source_kind,
+            source_payload_kind: source_fixture.source_payload_kind.clone(),
+            sample_count: source_fixture.samples.len(),
+            normalized_sample_count,
+            estimate_count,
+        });
+    }
+
+    let feedback_samples: Vec<LiveFeedbackSample> = breath_samples
+        .iter()
+        .map(|sample| LiveFeedbackSample {
+            sequence_id: sample.sequence_id,
+            stream_id: STREAM_BREATH_FEEDBACK_STATE.to_string(),
+            source_breath_sequence_id: sample.sequence_id,
+            source_id: sample.source_id.clone(),
+            sample_time_unix_ns: seconds_to_unix_ns(sample.sample_time_s),
+            volume01: sample.volume01,
+            phase: sample.phase.clone(),
+            quality: sample.quality.clone(),
+        })
+        .collect();
+    let receiver_receipts: Vec<ReceiverBreathReceiptPlan> = feedback_samples
+        .iter()
+        .map(|sample| ReceiverBreathReceiptPlan {
+            command: fixture.receiver.receipt_command.clone(),
+            schema: fixture.receiver.receipt_schema.clone(),
+            received_stream: sample.stream_id.clone(),
+            received_sequence_id: sample.sequence_id,
+            receiver_id: fixture.receiver.receiver_id.clone(),
+            acknowledged: true,
+        })
+        .collect();
+
+    issues.extend(validate_live_route_expected(
+        &fixture,
+        &source_routes,
+        &breath_samples,
+        &feedback_samples,
+        &receiver_receipts,
+    ));
+    issues = dedup_issue_codes(issues);
+    let status = if issues.is_empty() { "pass" } else { "fail" }.to_string();
+
+    Ok(LiveRouteReport {
+        schema: LIVE_ROUTE_REPORT_SCHEMA,
+        package_root: package_root.display().to_string(),
+        status,
+        route_id: fixture.route_id,
+        input_stream_ids: fixture.input_stream_ids,
+        normalized_stream_ids: fixture.normalized_stream_ids,
+        output_stream_ids: fixture.output_stream_ids,
+        processor_core_executed: true,
+        runtime_execution_performed: true,
+        external_transport_used: false,
+        live_sensor_used: false,
+        headset_execution_performed: false,
+        plan_only: true,
+        source_routes,
+        breath_samples,
+        feedback_samples,
+        receiver_subscription: ReceiverBreathSubscriptionPlan {
+            command: fixture.receiver.subscription_command,
+            stream: fixture.receiver.subscription_stream_id,
+            receiver_id: fixture.receiver.receiver_id,
+        },
+        receiver_receipts,
+        issues,
+    })
+}
+
 fn read_golden(path: &Path) -> Result<GoldenFixture, ValidationError> {
     let text = fs::read_to_string(path).map_err(|source| ValidationError::Io {
         path: path.to_path_buf(),
@@ -1026,6 +1427,17 @@ fn read_adapter_normalization_case(
 fn read_controller_preflight_fixture(
     path: &Path,
 ) -> Result<ControllerPreflightFixture, ValidationError> {
+    let text = fs::read_to_string(path).map_err(|source| ValidationError::Io {
+        path: path.to_path_buf(),
+        source,
+    })?;
+    serde_json::from_str(&text).map_err(|source| ValidationError::Json {
+        path: path.to_path_buf(),
+        source,
+    })
+}
+
+fn read_live_route_fixture(path: &Path) -> Result<LiveRouteFixture, ValidationError> {
     let text = fs::read_to_string(path).map_err(|source| ValidationError::Io {
         path: path.to_path_buf(),
         source,
@@ -1498,11 +1910,14 @@ fn validate_source_binding(package_root: &Path, binding: &SourceBinding) -> Opti
 
     let stream_supported = binding.selected_output_stream_id == STREAM_OBJECT_POSE
         || binding.selected_output_stream_id == STREAM_VECTOR3;
+    let source_stream_supported = binding.source_stream_id == adapter.output_stream_id
+        || (binding.selected_source_kind == "wearable_acceleration"
+            && binding.source_stream_id == EXTERNAL_STREAM_POLAR_ACC);
     if !stream_supported
         || adapter.source_kind != binding.selected_source_kind
         || adapter.input_kind != binding.selected_input_kind
         || adapter.output_stream_id != binding.selected_output_stream_id
-        || binding.source_stream_id != adapter.output_stream_id
+        || !source_stream_supported
         || !profile
             .input_kinds
             .iter()
@@ -1601,6 +2016,7 @@ fn source_payload_kind_matches(selected_source_kind: &str, source_payload_kind: 
         ("object_pose", "object_pose")
             | ("xr_controller_pose", "object_pose")
             | ("vector_motion", "vector_motion")
+            | ("wearable_acceleration", "vector_motion")
             | ("external_patch_stream_bridge", "external_patch_channels")
     )
 }
@@ -1683,6 +2099,134 @@ fn validate_controller_preflight_expected(
         issues.push("issue.controller_preflight_expected_manual_gate_invalid".to_string());
     }
     issues
+}
+
+fn validate_live_route_fixture(fixture: &LiveRouteFixture) -> Vec<String> {
+    let mut issues = Vec::new();
+    if fixture.schema != LIVE_ROUTE_FIXTURE_SCHEMA
+        || fixture.route_id.is_empty()
+        || fixture.package_id != PACKAGE_PROJECTED_MOTION_BREATH
+        || fixture.target_module_id != MODULE_PROJECTED_MOTION_BREATH
+        || fixture.execution_policy != "plan_only.synthetic_stream_events_no_transport"
+    {
+        issues.push("issue.live_route_identity_invalid".to_string());
+    }
+    for stream_id in [EXTERNAL_STREAM_POLAR_ACC, STREAM_OBJECT_POSE] {
+        if !fixture
+            .input_stream_ids
+            .iter()
+            .any(|item| item == stream_id)
+        {
+            issues.push(format!("issue.live_route_input_missing:{stream_id}"));
+        }
+    }
+    for stream_id in [STREAM_VECTOR3, STREAM_OBJECT_POSE] {
+        if !fixture
+            .normalized_stream_ids
+            .iter()
+            .any(|item| item == stream_id)
+        {
+            issues.push(format!(
+                "issue.live_route_normalized_stream_missing:{stream_id}"
+            ));
+        }
+    }
+    for stream_id in [STREAM_BREATH_VOLUME, STREAM_BREATH_FEEDBACK_STATE] {
+        if !fixture
+            .output_stream_ids
+            .iter()
+            .any(|item| item == stream_id)
+        {
+            issues.push(format!("issue.live_route_output_missing:{stream_id}"));
+        }
+    }
+    if fixture.external_transport_used
+        || fixture.live_sensor_used
+        || fixture.headset_execution_performed
+        || fixture.sources.len() < 2
+    {
+        issues.push("issue.live_route_non_live_gate_invalid".to_string());
+    }
+    if fixture.receiver.subscription_command != RECEIVER_COMMAND_SUBSCRIBE
+        || fixture.receiver.subscription_stream_id != STREAM_BREATH_FEEDBACK_STATE
+        || fixture.receiver.receipt_command != RECEIVER_COMMAND_BREATH_FEEDBACK_RECEIVED
+        || fixture.receiver.receipt_schema != BREATH_FEEDBACK_RECEIPT_SCHEMA
+        || fixture.receiver.receiver_id.is_empty()
+    {
+        issues.push("issue.live_route_receiver_plan_invalid".to_string());
+    }
+    for source in &fixture.sources {
+        if source.source_id.is_empty()
+            || source.source_stream_id.is_empty()
+            || source.binding_path.is_empty()
+            || source.samples.is_empty()
+            || source.calibration.projection_values.len() < 2
+            || normalized_axis(source.projection.axis).is_none()
+        {
+            issues.push(format!("{}:issue.live_source_invalid", source.source_id));
+        }
+    }
+    issues
+}
+
+fn validate_live_route_expected(
+    fixture: &LiveRouteFixture,
+    source_routes: &[LiveSourceRouteReport],
+    breath_samples: &[LiveBreathSample],
+    feedback_samples: &[LiveFeedbackSample],
+    receipts: &[ReceiverBreathReceiptPlan],
+) -> Vec<String> {
+    let mut issues = Vec::new();
+    if source_routes.len() < fixture.expected.min_source_route_count {
+        issues.push("issue.live_route_source_count".to_string());
+    }
+    if breath_samples.len() < fixture.expected.min_breath_sample_count {
+        issues.push("issue.live_route_breath_sample_count".to_string());
+    }
+    if feedback_samples.len() < fixture.expected.min_feedback_sample_count {
+        issues.push("issue.live_route_feedback_sample_count".to_string());
+    }
+    if receipts.len() < fixture.expected.min_receipt_count {
+        issues.push("issue.live_route_receipt_count".to_string());
+    }
+    for phase in &fixture.expected.required_phases {
+        if !breath_samples
+            .iter()
+            .any(|sample| sample.phase.as_str() == phase.as_str())
+        {
+            issues.push(format!("issue.live_route_phase_missing:{phase}"));
+        }
+    }
+    if !source_routes
+        .iter()
+        .any(|route| route.source_stream_id == EXTERNAL_STREAM_POLAR_ACC)
+    {
+        issues.push("issue.live_route_polar_acc_missing".to_string());
+    }
+    if !source_routes
+        .iter()
+        .any(|route| route.source_stream_id == STREAM_OBJECT_POSE)
+    {
+        issues.push("issue.live_route_object_pose_missing".to_string());
+    }
+    if receipts.iter().any(|receipt| {
+        receipt.command != RECEIVER_COMMAND_BREATH_FEEDBACK_RECEIVED
+            || receipt.schema != BREATH_FEEDBACK_RECEIPT_SCHEMA
+            || receipt.received_stream != STREAM_BREATH_FEEDBACK_STATE
+            || !receipt.acknowledged
+    }) {
+        issues.push("issue.live_route_receipt_invalid".to_string());
+    }
+    issues
+}
+
+fn seconds_to_unix_ns(seconds: f64) -> i64 {
+    if !seconds.is_finite() {
+        return 0;
+    }
+    (seconds.max(0.0) * 1_000_000_000.0)
+        .round()
+        .clamp(0.0, i64::MAX as f64) as i64
 }
 
 fn motion_profile_from_document(
@@ -2053,7 +2597,7 @@ mod tests {
         assert_eq!(report.checked_profiles, 1);
         assert_eq!(report.checked_command_payloads, 5);
         assert_eq!(report.checked_damaged_command_payloads, 6);
-        assert_eq!(report.checked_source_bindings, 4);
+        assert_eq!(report.checked_source_bindings, 5);
         assert_eq!(report.checked_damaged_source_bindings, 2);
         assert_eq!(report.checked_adapter_normalization_cases, 3);
         assert_eq!(report.checked_damaged_adapter_normalization_cases, 2);
@@ -2083,6 +2627,46 @@ mod tests {
             .map(|estimate| estimate.phase.as_str())
             .collect();
         assert_eq!(phases, vec!["pause", "inhale", "exhale"]);
+    }
+
+    #[test]
+    fn runs_live_route_self_test_without_live_transport() {
+        let package_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let report = run_live_route_self_test(package_root).expect("route self-test loads");
+        assert_eq!(report.status, "pass");
+        assert!(report.processor_core_executed);
+        assert!(report.runtime_execution_performed);
+        assert!(report.plan_only);
+        assert!(!report.external_transport_used);
+        assert!(!report.live_sensor_used);
+        assert!(!report.headset_execution_performed);
+        assert!(report
+            .input_stream_ids
+            .contains(&EXTERNAL_STREAM_POLAR_ACC.to_string()));
+        assert!(report
+            .input_stream_ids
+            .contains(&STREAM_OBJECT_POSE.to_string()));
+        assert!(report
+            .output_stream_ids
+            .contains(&STREAM_BREATH_VOLUME.to_string()));
+        assert!(report
+            .output_stream_ids
+            .contains(&STREAM_BREATH_FEEDBACK_STATE.to_string()));
+        assert_eq!(
+            report.receiver_subscription.command,
+            RECEIVER_COMMAND_SUBSCRIBE
+        );
+        assert_eq!(
+            report.receiver_subscription.stream,
+            STREAM_BREATH_FEEDBACK_STATE
+        );
+        assert_eq!(report.breath_samples.len(), 6);
+        assert_eq!(report.feedback_samples.len(), 6);
+        assert_eq!(report.receiver_receipts.len(), 6);
+        assert!(report
+            .receiver_receipts
+            .iter()
+            .all(|receipt| receipt.command == RECEIVER_COMMAND_BREATH_FEEDBACK_RECEIVED));
     }
 
     #[test]

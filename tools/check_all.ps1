@@ -46,6 +46,15 @@ try {
         "--package-root",
         "packages\projected-motion-breath"
     )
+    Invoke-Checked "projected motion breath live route self-test" "cargo" @(
+        "run",
+        "-p",
+        "projected-motion-breath-core",
+        "--",
+        "live-route-self-test",
+        "--package-root",
+        "packages\projected-motion-breath"
+    )
     Invoke-Checked "desktop readiness" "python" @("tools\check_device_readiness.py", "--repo-root", ".", "--host-profile", "desktop")
     Invoke-Checked "mobile readiness" "python" @("tools\check_device_readiness.py", "--repo-root", ".", "--host-profile", "mobile")
     Invoke-Checked "headset readiness" "python" @("tools\check_device_readiness.py", "--repo-root", ".", "--host-profile", "headset")

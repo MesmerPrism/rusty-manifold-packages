@@ -1,4 +1,6 @@
-use projected_motion_breath_core::{run_controller_preflight, validate_package_goldens};
+use projected_motion_breath_core::{
+    run_controller_preflight, run_live_route_self_test, validate_package_goldens,
+};
 use std::env;
 use std::path::PathBuf;
 
@@ -28,6 +30,8 @@ fn main() {
             .map(|report| (report.status.clone(), serde_json::to_string(&report))),
         "controller-preflight" => run_controller_preflight(package_root)
             .map(|report| (report.status.clone(), serde_json::to_string(&report))),
+        "live-route-self-test" => run_live_route_self_test(package_root)
+            .map(|report| (report.status.clone(), serde_json::to_string(&report))),
         _ => print_usage_and_exit(),
     };
 
@@ -47,7 +51,7 @@ fn main() {
 
 fn print_usage_and_exit() -> ! {
     eprintln!(
-        "usage: projected-motion-breath-core <validate-goldens|controller-preflight> --package-root <package-root>"
+        "usage: projected-motion-breath-core <validate-goldens|controller-preflight|live-route-self-test> --package-root <package-root>"
     );
     std::process::exit(2);
 }
