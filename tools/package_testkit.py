@@ -76,6 +76,7 @@ class PackageBundle:
     completion_evidence: list[dict[str, Any]]
     processing_goldens: list[dict[str, Any]]
     source_adapter_descriptors: list[dict[str, Any]]
+    shell_handoffs: list[dict[str, Any]]
     provenance_docs: list[dict[str, Any]]
     rejections: list[dict[str, Any]]
 
@@ -131,6 +132,10 @@ def load_packages(repo_root: Path, checks: list[Check]) -> list[PackageBundle]:
                     source_adapter_descriptors=read_json_dir(
                         package_root / "fixtures/valid",
                         glob_pattern="source-adapter-*.json",
+                    ),
+                    shell_handoffs=read_json_dir(
+                        package_root / "fixtures/valid",
+                        glob_pattern="shell-handoff-*.json",
                     ),
                     provenance_docs=read_json_dir(
                         package_root / "manifests", glob_pattern="provenance*.json"
@@ -241,6 +246,7 @@ def add_package_checks(package: PackageBundle, checks: list[Check]) -> None:
     validate_scorecards(prefix, package, checks)
     validate_provenance(prefix, package, checks)
     validate_processor_goldens(prefix, package, checks)
+    validate_shell_handoffs(prefix, package, ids, checks)
     validate_polar_readiness(prefix, package, modules_by_id, checks)
     validate_polar_completion_evidence(prefix, package, checks)
     validate_projected_motion_breath(prefix, package, checks)
@@ -703,6 +709,77 @@ def validate_processor_goldens(prefix: str, package: PackageBundle, checks: list
         not errors,
         "Polar processor golden fixtures recompute expected non-live outputs",
         f"processor golden issues: {errors}",
+    )
+
+
+def validate_shell_handoffs(
+    prefix: str,
+    package: PackageBundle,
+    ids: dict[str, set[str]],
+    checks: list[Check],
+) -> None:
+    errors: list[str] = []
+    for handoff in package.shell_handoffs:
+        handoff_id = str(handoff.get("handoff_id", ""))
+        if not ID_RE.match(handoff_id):
+            errors.append(f"{handoff_id}:handoff_id")
+        for key in (
+            "target_host_profile",
+            "shell_app_id",
+            "validation_slot_id",
+            "expected_scorecard_id",
+        ):
+            value = str(handoff.get(key, ""))
+            if not ID_RE.match(value):
+                errors.append(f"{handoff_id}:{key}")
+
+        for binding in handoff.get("stream_bindings", []):
+            stream_id = str(binding.get("stream_id", ""))
+            role = str(binding.get("role", ""))
+            direction = str(binding.get("direction", ""))
+            if stream_id not in ids["streams"]:
+                errors.append(f"{handoff_id}:stream:{stream_id}")
+            if not ID_RE.match(role):
+                errors.append(f"{handoff_id}:role:{role}")
+            if direction not in {"publish", "subscribe"}:
+                errors.append(f"{handoff_id}:direction:{direction}")
+            if not isinstance(binding.get("required"), bool):
+                errors.append(f"{handoff_id}:required:{stream_id}")
+
+        for command_id in handoff.get("command_ids", []):
+            if command_id not in ids["commands"]:
+                errors.append(f"{handoff_id}:command:{command_id}")
+
+        for offer in handoff.get("transport_offers", []):
+            transport_id = str(offer.get("transport_id", ""))
+            endpoint_id = offer.get("endpoint_id")
+            if not ID_RE.match(transport_id):
+                errors.append(f"{handoff_id}:transport_id:{transport_id}")
+            if endpoint_id is not None and not ID_RE.match(str(endpoint_id)):
+                errors.append(f"{handoff_id}:endpoint_id:{endpoint_id}")
+
+    if str(package.manifest.get("package_id")) == "package.projected_motion_breath":
+        bindings = {
+            (str(binding.get("stream_id", "")), str(binding.get("direction", "")))
+            for handoff in package.shell_handoffs
+            for binding in handoff.get("stream_bindings", [])
+        }
+        required = {
+            ("stream.motion.object_pose", "publish"),
+            ("stream.breath.feedback_state", "subscribe"),
+            ("stream.breath.feedback_receipt", "publish"),
+        }
+        errors += [
+            f"missing_binding:{stream_id}:{direction}"
+            for stream_id, direction in sorted(required - bindings)
+        ]
+
+    append_check(
+        checks,
+        f"{prefix}.shell_handoffs",
+        not errors,
+        "shell handoff fixtures resolve package streams, commands, and receipt bindings",
+        f"shell handoff issues: {errors}",
     )
 
 

@@ -12,7 +12,8 @@
     "failed"
   ],
   "provides_streams": [
-    "stream.breath.feedback_state"
+    "stream.breath.feedback_state",
+    "stream.breath.feedback_receipt"
   ],
   "consumes_streams": [
     "stream.breath.volume",

@@ -1140,7 +1140,7 @@ pub fn run_live_route_self_test(
     )
 }
 
-pub fn run_live_route_from_broker_events(
+pub fn run_live_route_from_transport_events(
     package_root: impl AsRef<Path>,
     events_jsonl: impl AsRef<Path>,
 ) -> Result<LiveRouteReport, ValidationError> {
@@ -1151,7 +1151,7 @@ pub fn run_live_route_from_broker_events(
         .join("live-route-self-test.json");
     let fixture = read_live_route_fixture(&fixture_path)?;
     let (source_samples, event_issues) =
-        read_live_broker_event_samples(events_jsonl.as_ref(), &fixture)?;
+        read_live_transport_event_samples(events_jsonl.as_ref(), &fixture)?;
     run_live_route_with_source_samples(
         package_root,
         fixture,
@@ -1405,7 +1405,7 @@ fn run_live_route_with_source_samples(
             &receiver_receipts,
         ));
     } else {
-        issues.extend(validate_live_broker_route_observed(
+        issues.extend(validate_live_transport_route_observed(
             &source_routes,
             &breath_samples,
             &feedback_samples,
@@ -1441,7 +1441,7 @@ fn run_live_route_with_source_samples(
     })
 }
 
-fn read_live_broker_event_samples(
+fn read_live_transport_event_samples(
     path: &Path,
     fixture: &LiveRouteFixture,
 ) -> Result<
@@ -1483,11 +1483,11 @@ fn read_live_broker_event_samples(
             continue;
         }
         let converted = match stream {
-            EXTERNAL_STREAM_POLAR_ACC => broker_polar_acc_samples(&event, payload),
+            EXTERNAL_STREAM_POLAR_ACC => transport_polar_acc_samples(&event, payload),
             STREAM_OBJECT_POSE => {
-                broker_object_pose_sample(&event, payload).map(|sample| vec![sample])
+                transport_object_pose_sample(&event, payload).map(|sample| vec![sample])
             }
-            _ => Err("issue.broker_event_stream_unsupported"),
+            _ => Err("issue.transport_event_stream_unsupported"),
         };
         match converted {
             Ok(converted) => samples_by_stream
@@ -1495,7 +1495,7 @@ fn read_live_broker_event_samples(
                 .or_default()
                 .extend(converted),
             Err(issue) => issues.push(format!(
-                "broker_event.line_{}:{stream}:{issue}",
+                "transport_event.line_{}:{stream}:{issue}",
                 line_index + 1
             )),
         }
@@ -1503,7 +1503,7 @@ fn read_live_broker_event_samples(
     Ok((samples_by_stream, issues))
 }
 
-fn broker_polar_acc_samples(
+fn transport_polar_acc_samples(
     event: &serde_json::Value,
     payload: &serde_json::Value,
 ) -> Result<Vec<AdapterNormalizationInput>, &'static str> {
@@ -1511,28 +1511,28 @@ fn broker_polar_acc_samples(
         .get("samples_mg")
         .and_then(serde_json::Value::as_array)
     else {
-        return Err("issue.broker_event_polar_samples_missing");
+        return Err("issue.transport_event_source_samples_missing");
     };
     let base_sample_time_s = ns_to_seconds(
         first_i64(payload, &["sample_time_unix_ns", "source_time_unix_ns"])
-            .or_else(|| first_i64(event, &["broker_time_unix_ns"]))
+            .or_else(|| first_i64(event, &["transport_time_unix_ns"]))
             .unwrap_or(0),
     );
     let host_time_s = ns_to_seconds(
         first_i64(
             payload,
-            &["broker_receive_time_unix_ns", "client_send_time_unix_ns"],
+            &["transport_receive_time_unix_ns", "client_send_time_unix_ns"],
         )
-        .or_else(|| first_i64(event, &["broker_time_unix_ns"]))
+        .or_else(|| first_i64(event, &["transport_time_unix_ns"]))
         .unwrap_or(0),
     );
     let mut converted = Vec::new();
     for (index, sample) in samples_mg.iter().enumerate() {
         let Some(vector_mg) = json_array3(sample) else {
-            return Err("issue.broker_event_polar_sample_invalid");
+            return Err("issue.transport_event_source_sample_invalid");
         };
         converted.push(AdapterNormalizationInput {
-            source_id: "source.polar_h10.acc.live_broker".to_string(),
+            source_id: "source.polar_h10.acc.live_transport".to_string(),
             sample_time_s: base_sample_time_s + (index as f64 * 0.005),
             host_time_s,
             frame_id: "frame.polar_h10.body".to_string(),
@@ -1559,31 +1559,31 @@ fn broker_polar_acc_samples(
     Ok(converted)
 }
 
-fn broker_object_pose_sample(
+fn transport_object_pose_sample(
     event: &serde_json::Value,
     payload: &serde_json::Value,
 ) -> Result<AdapterNormalizationInput, &'static str> {
     let Some(position_m) = object_pose_position(payload) else {
-        return Err("issue.broker_event_pose_position_missing");
+        return Err("issue.transport_event_pose_position_missing");
     };
     let Some(orientation_xyzw) = object_pose_orientation(payload) else {
-        return Err("issue.broker_event_pose_orientation_missing");
+        return Err("issue.transport_event_pose_orientation_missing");
     };
     let sample_time_s = ns_to_seconds(
         first_i64(payload, &["sample_time_unix_ns", "source_time_unix_ns"])
-            .or_else(|| first_i64(event, &["broker_time_unix_ns"]))
+            .or_else(|| first_i64(event, &["transport_time_unix_ns"]))
             .unwrap_or(0),
     );
     let host_time_s = ns_to_seconds(
         first_i64(
             payload,
-            &["broker_receive_time_unix_ns", "client_send_time_unix_ns"],
+            &["transport_receive_time_unix_ns", "client_send_time_unix_ns"],
         )
-        .or_else(|| first_i64(event, &["broker_time_unix_ns"]))
+        .or_else(|| first_i64(event, &["transport_time_unix_ns"]))
         .unwrap_or(0),
     );
     Ok(AdapterNormalizationInput {
-        source_id: "source.downstream.controller_pose.live_broker".to_string(),
+        source_id: "source.downstream.controller_pose.live_transport".to_string(),
         sample_time_s,
         host_time_s,
         frame_id: payload
@@ -1614,33 +1614,33 @@ fn broker_object_pose_sample(
     })
 }
 
-fn validate_live_broker_route_observed(
+fn validate_live_transport_route_observed(
     source_routes: &[LiveSourceRouteReport],
     breath_samples: &[LiveBreathSample],
     feedback_samples: &[LiveFeedbackSample],
 ) -> Vec<String> {
     let mut issues = Vec::new();
     if source_routes.len() < 2 {
-        issues.push("issue.live_broker_route_source_route_count".to_string());
+        issues.push("issue.live_transport_route_source_route_count".to_string());
     }
     for route in source_routes {
         if route.sample_count == 0 {
             issues.push(format!(
-                "{}:issue.live_broker_samples_missing",
+                "{}:issue.live_transport_samples_missing",
                 route.source_id
             ));
         } else if route.estimate_count == 0 {
             issues.push(format!(
-                "{}:issue.live_broker_estimates_missing",
+                "{}:issue.live_transport_estimates_missing",
                 route.source_id
             ));
         }
     }
     if breath_samples.is_empty() {
-        issues.push("issue.live_broker_breath_samples_missing".to_string());
+        issues.push("issue.live_transport_breath_samples_missing".to_string());
     }
     if feedback_samples.is_empty() {
-        issues.push("issue.live_broker_feedback_samples_missing".to_string());
+        issues.push("issue.live_transport_feedback_samples_missing".to_string());
     }
     issues
 }
@@ -3051,7 +3051,7 @@ mod tests {
     }
 
     #[test]
-    fn runs_live_route_from_broker_event_jsonl() {
+    fn runs_live_route_from_transport_event_jsonl() {
         let package_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let events_path = std::env::temp_dir().join(format!(
             "projected-motion-breath-live-route-events-{}.jsonl",
@@ -3062,11 +3062,11 @@ mod tests {
             serde_json::json!({
                 "type": "stream_event",
                 "stream": EXTERNAL_STREAM_POLAR_ACC,
-                "broker_time_unix_ns": 1_010_000_000_i64,
+                "transport_time_unix_ns": 1_010_000_000_i64,
                 "payload": {
                     "stream_id": EXTERNAL_STREAM_POLAR_ACC,
                     "sample_time_unix_ns": 1_000_000_000_i64,
-                    "broker_receive_time_unix_ns": 1_010_000_000_i64,
+                    "transport_receive_time_unix_ns": 1_010_000_000_i64,
                     "samples_mg": [[20, 200, -10], [20, 280, -10], [20, 180, -10]],
                     "quality01": 0.96
                 }
@@ -3078,11 +3078,11 @@ mod tests {
                 serde_json::json!({
                     "type": "stream_event",
                     "stream": STREAM_OBJECT_POSE,
-                    "broker_time_unix_ns": 1_010_000_000_i64 + (index as i64 * 50_000_000),
+                    "transport_time_unix_ns": 1_010_000_000_i64 + (index as i64 * 50_000_000),
                     "payload": {
                         "stream": STREAM_OBJECT_POSE,
                         "sample_time_unix_ns": 1_000_000_000_i64 + (index as i64 * 50_000_000),
-                        "broker_receive_time_unix_ns": 1_010_000_000_i64 + (index as i64 * 50_000_000),
+                        "transport_receive_time_unix_ns": 1_010_000_000_i64 + (index as i64 * 50_000_000),
                         "reference_space": "frame.headset.stage",
                         "position_m": [0.15, y, -0.20],
                         "orientation_xyzw": [0.0, 0.0, 0.0, 1.0],
@@ -3095,8 +3095,8 @@ mod tests {
             );
         }
         fs::write(&events_path, events.join("\n")).expect("events jsonl writes");
-        let report = run_live_route_from_broker_events(&package_root, &events_path)
-            .expect("broker events load");
+        let report = run_live_route_from_transport_events(&package_root, &events_path)
+            .expect("transport events load");
         let _ = fs::remove_file(&events_path);
         assert_eq!(report.status, "pass");
         assert!(report.processor_core_executed);

@@ -1,5 +1,5 @@
 use projected_motion_breath_core::{
-    run_controller_preflight, run_live_route_from_broker_events, run_live_route_self_test,
+    run_controller_preflight, run_live_route_from_transport_events, run_live_route_self_test,
     validate_package_goldens,
 };
 use std::env;
@@ -52,7 +52,7 @@ fn main() {
             if remaining_args[0] != "--events-jsonl" {
                 print_usage_and_exit();
             }
-            run_live_route_from_broker_events(package_root, PathBuf::from(&remaining_args[1]))
+            run_live_route_from_transport_events(package_root, PathBuf::from(&remaining_args[1]))
                 .map(|report| (report.status.clone(), serde_json::to_string(&report)))
         }
         _ => print_usage_and_exit(),

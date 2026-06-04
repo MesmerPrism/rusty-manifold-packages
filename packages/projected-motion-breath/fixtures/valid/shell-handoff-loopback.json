@@ -1,0 +1,39 @@
+{
+  "$schema": "rusty.manifold.shell.handoff.v1",
+  "handoff_id": "shell_handoff.projected_motion_breath.loopback",
+  "handoff_revision": 1,
+  "target_host_profile": "host.headset",
+  "shell_app_id": "app.downstream_shell",
+  "validation_slot_id": "host_run.slot.projected_motion_breath.live_route_loopback",
+  "stream_bindings": [
+    {
+      "stream_id": "stream.motion.object_pose",
+      "direction": "publish",
+      "role": "shell.stream.controller_pose_provider",
+      "required": true
+    },
+    {
+      "stream_id": "stream.breath.feedback_state",
+      "direction": "subscribe",
+      "role": "shell.stream.breath_feedback_receiver",
+      "required": true
+    },
+    {
+      "stream_id": "stream.breath.feedback_receipt",
+      "direction": "publish",
+      "role": "shell.stream.breath_feedback_receipt",
+      "required": true
+    }
+  ],
+  "command_ids": [
+    "command.breath.status"
+  ],
+  "transport_offers": [
+    {
+      "transport_id": "transport.shell_loopback",
+      "transport": "http",
+      "endpoint_id": "endpoint.shell_loopback"
+    }
+  ],
+  "expected_scorecard_id": "scorecard.projected_motion_breath.shell_handoff_loopback"
+}

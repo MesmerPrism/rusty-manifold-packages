@@ -16,7 +16,8 @@
       "stream.motion.vector3",
       "stream.breath.volume",
       "stream.breath.dynamics",
-      "stream.breath.feedback_state"
+      "stream.breath.feedback_state",
+      "stream.breath.feedback_receipt"
     ],
     "commands": [
       "command.breath.configure",
