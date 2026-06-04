@@ -13,7 +13,11 @@
     "failed"
   ],
   "provides_streams": [
-    "stream.breath.volume"
+    "stream.breath.volume",
+    "stream.breath.volume.selected",
+    "stream.breath.volume.polar",
+    "stream.breath.volume.controller",
+    "stream.breath.selection_state"
   ],
   "consumes_streams": [
     "stream.motion.object_pose",

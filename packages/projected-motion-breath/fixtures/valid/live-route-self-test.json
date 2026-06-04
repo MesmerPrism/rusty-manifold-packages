@@ -14,6 +14,10 @@
   ],
   "output_stream_ids": [
     "stream.breath.volume",
+    "stream.breath.volume.selected",
+    "stream.breath.volume.polar",
+    "stream.breath.volume.controller",
+    "stream.breath.selection_state",
     "stream.breath.feedback_state"
   ],
   "external_transport_used": false,
@@ -22,7 +26,7 @@
   "receiver": {
     "receiver_id": "app.downstream_camera_shell.breath_feedback",
     "subscription_command": "subscribe",
-    "subscription_stream_id": "stream.breath.feedback_state",
+    "subscription_stream_id": "stream.breath.volume.selected",
     "receipt_command": "breath_feedback.received",
     "receipt_schema": "rusty.manifold.breath.feedback_receipt.v1"
   },

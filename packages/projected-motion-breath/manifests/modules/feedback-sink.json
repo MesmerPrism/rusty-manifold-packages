@@ -17,6 +17,7 @@
   ],
   "consumes_streams": [
     "stream.breath.volume",
+    "stream.breath.volume.selected",
     "stream.breath.dynamics"
   ],
   "accepted_commands": [

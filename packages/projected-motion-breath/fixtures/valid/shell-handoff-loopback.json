@@ -13,9 +13,9 @@
       "required": true
     },
     {
-      "stream_id": "stream.breath.feedback_state",
+      "stream_id": "stream.breath.volume.selected",
       "direction": "subscribe",
-      "role": "shell.stream.breath_feedback_receiver",
+      "role": "shell.stream.selected_breath_volume_receiver",
       "required": true
     },
     {

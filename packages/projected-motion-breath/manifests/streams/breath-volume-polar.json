@@ -1,0 +1,20 @@
+{
+  "$schema": "rusty.manifold.stream.manifest.v1",
+  "stream_id": "stream.breath.volume.polar",
+  "source_module_id": "module.breath.projected_motion",
+  "semantic_family": "breath.volume.source_specific",
+  "sample_schema": "rusty.manifold.sample.breath_volume.v1",
+  "rate_class": "periodic",
+  "timestamp_domains": [
+    "clock.host_monotonic"
+  ],
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "transport_offers": [],
+  "subscription": {
+    "ui_subscribable": true,
+    "max_subscribers": 8
+  }
+}

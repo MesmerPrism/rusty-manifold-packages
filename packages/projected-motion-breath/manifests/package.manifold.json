@@ -15,6 +15,10 @@
       "stream.motion.object_pose",
       "stream.motion.vector3",
       "stream.breath.volume",
+      "stream.breath.volume.selected",
+      "stream.breath.volume.polar",
+      "stream.breath.volume.controller",
+      "stream.breath.selection_state",
       "stream.breath.dynamics",
       "stream.breath.feedback_state",
       "stream.breath.feedback_receipt"

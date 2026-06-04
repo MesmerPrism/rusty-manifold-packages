@@ -1,0 +1,20 @@
+{
+  "$schema": "rusty.manifold.stream.manifest.v1",
+  "stream_id": "stream.breath.selection_state",
+  "source_module_id": "module.breath.projected_motion",
+  "semantic_family": "breath.selection_state",
+  "sample_schema": "rusty.manifold.sample.breath_selection_state.v1",
+  "rate_class": "event",
+  "timestamp_domains": [
+    "clock.host_monotonic"
+  ],
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "transport_offers": [],
+  "subscription": {
+    "ui_subscribable": true,
+    "max_subscribers": 8
+  }
+}

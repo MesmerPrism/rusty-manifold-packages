@@ -1,0 +1,43 @@
+{
+  "$schema": "rusty.motion_breath_profile.v1",
+  "profile_id": "profile.projected_motion_breath.wearable_acceleration_reference",
+  "target_module_id": "module.breath.projected_motion",
+  "input_kinds": [
+    "pose",
+    "vector3"
+  ],
+  "projection": {
+    "mode": "principal_motion_axis",
+    "fallback_mode": "fixed_axis",
+    "fixed_axis": [
+      0.0,
+      1.0,
+      0.0
+    ]
+  },
+  "calibration": {
+    "accepted_sample_count": 120,
+    "min_accepted_delta": 0.0005,
+    "min_span": 0.01,
+    "lower_quantile": 0.05,
+    "upper_quantile": 0.95
+  },
+  "normalization": {
+    "soft_margin": 0.0,
+    "edge_ease": 0.03,
+    "progress_gamma": 1.0
+  },
+  "smoothing": {
+    "analysis_rate_hz": 10.0,
+    "median_window": 1,
+    "ema_alpha": 0.10
+  },
+  "classifier": {
+    "delta_threshold": 0.003,
+    "stale_timeout_s": 3.0
+  },
+  "quality": {
+    "require_tracked": false,
+    "min_quality01": 0.0
+  }
+}

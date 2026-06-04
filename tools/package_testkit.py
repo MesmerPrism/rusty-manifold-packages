@@ -766,7 +766,7 @@ def validate_shell_handoffs(
         }
         required = {
             ("stream.motion.object_pose", "publish"),
-            ("stream.breath.feedback_state", "subscribe"),
+            ("stream.breath.volume.selected", "subscribe"),
             ("stream.breath.feedback_receipt", "publish"),
         }
         errors += [
@@ -1454,6 +1454,10 @@ def validate_projected_motion_breath(
         "stream.motion.object_pose",
         "stream.motion.vector3",
         "stream.breath.volume",
+        "stream.breath.volume.selected",
+        "stream.breath.volume.polar",
+        "stream.breath.volume.controller",
+        "stream.breath.selection_state",
         "stream.breath.dynamics",
         "stream.breath.feedback_state",
     }
