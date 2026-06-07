@@ -1,0 +1,20 @@
+{
+  "$schema": "rusty.manifold.stream.manifest.v1",
+  "stream_id": "stream.matter.dynamic_collider_contact",
+  "source_module_id": "module.mesh.dynamic_collider",
+  "semantic_family": "matter.mesh.dynamic_collider_contact",
+  "sample_schema": "rusty.matter.mesh.dynamic_collider_contact.v1",
+  "rate_class": "event",
+  "timestamp_domains": [
+    "clock.host_monotonic"
+  ],
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "transport_offers": [],
+  "subscription": {
+    "ui_subscribable": false,
+    "max_subscribers": 2
+  }
+}

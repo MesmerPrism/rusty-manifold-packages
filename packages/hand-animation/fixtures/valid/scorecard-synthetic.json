@@ -17,6 +17,21 @@
       "check_id": "check.hand_animation.high_rate_payloads",
       "status": "pass",
       "evidence": "High-rate joint frames and validation meshes are streams/artifacts, not command-envelope bodies."
+    },
+    {
+      "check_id": "check.hand_animation.matter_bridge",
+      "status": "pass",
+      "evidence": "SDF, dynamic-collider, and particle modules consume the same validation mesh and coordinate-map streams used by the recorder/exporter flow."
+    },
+    {
+      "check_id": "check.hand_animation.artifact_references",
+      "status": "pass",
+      "evidence": "Matter SDF grids, collider updates, particle sets, diagnostics, and render-neutral payloads are referenced as artifacts instead of embedded in package commands."
+    },
+    {
+      "check_id": "check.hand_animation.optics_boundary",
+      "status": "pass",
+      "evidence": "The particle render-payload stream carries Matter data only; view, material, camera, color, and renderer policy remain outside this package."
     }
   ]
 }

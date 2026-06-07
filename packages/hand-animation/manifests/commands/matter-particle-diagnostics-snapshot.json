@@ -1,0 +1,10 @@
+{
+  "$schema": "rusty.manifold.command.descriptor.v1",
+  "command_id": "command.matter.particle.diagnostics.snapshot",
+  "target_scope": "module.particle.simulator",
+  "input_schema": "rusty.manifold.command.input.empty.v1",
+  "required_capability": "manifold.module.inspect",
+  "required_lease_scope": null,
+  "safety_class": "read_only",
+  "operator_confirmation_required": false
+}

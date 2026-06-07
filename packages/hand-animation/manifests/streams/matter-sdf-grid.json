@@ -1,0 +1,20 @@
+{
+  "$schema": "rusty.manifold.stream.manifest.v1",
+  "stream_id": "stream.matter.sdf_grid",
+  "source_module_id": "module.mesh.sdf_builder",
+  "semantic_family": "matter.mesh.sdf_grid",
+  "sample_schema": "rusty.matter.sdf.packed_grid.v1",
+  "rate_class": "event",
+  "timestamp_domains": [
+    "clock.host_monotonic"
+  ],
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "transport_offers": [],
+  "subscription": {
+    "ui_subscribable": false,
+    "max_subscribers": 2
+  }
+}

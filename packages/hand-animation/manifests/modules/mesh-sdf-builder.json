@@ -1,0 +1,46 @@
+{
+  "$schema": "rusty.manifold.module.manifest.v1",
+  "module_id": "module.mesh.sdf_builder",
+  "module_kind": "processor",
+  "label": "Mesh SDF Builder",
+  "version": "0.1.0",
+  "lifecycle_states": [
+    "available",
+    "starting",
+    "running",
+    "stopping",
+    "stopped",
+    "failed"
+  ],
+  "provides_streams": [
+    "stream.matter.sdf_grid"
+  ],
+  "consumes_streams": [
+    "stream.hand.validation_mesh"
+  ],
+  "accepted_commands": [
+    "command.matter.mesh.sdf.build"
+  ],
+  "required_capabilities": [
+    "manifold.module.control"
+  ],
+  "clock_policy": {
+    "source_domain": "clock.host_monotonic",
+    "correlation_required": true
+  },
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "platform_support": [
+    "backend.synthetic",
+    "backend.replay",
+    "backend.desktop_host"
+  ],
+  "issue_codes": [
+    "issue.sdf_input_mesh_missing",
+    "issue.sdf_topology_invalid",
+    "issue.sdf_voxel_budget_exceeded",
+    "issue.sdf_artifact_write_failed"
+  ]
+}

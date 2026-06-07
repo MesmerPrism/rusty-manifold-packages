@@ -1,0 +1,20 @@
+{
+  "$schema": "rusty.manifold.stream.manifest.v1",
+  "stream_id": "stream.matter.particle_set",
+  "source_module_id": "module.particle.simulator",
+  "semantic_family": "matter.particle.set",
+  "sample_schema": "rusty.matter.particle.set.v1",
+  "rate_class": "periodic",
+  "timestamp_domains": [
+    "clock.host_monotonic"
+  ],
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "transport_offers": [],
+  "subscription": {
+    "ui_subscribable": false,
+    "max_subscribers": 2
+  }
+}

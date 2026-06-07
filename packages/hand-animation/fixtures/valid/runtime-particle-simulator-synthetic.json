@@ -1,0 +1,16 @@
+{
+  "$schema": "rusty.manifold.module.runtime_state.v1",
+  "module_id": "module.particle.simulator",
+  "runtime_revision": 1,
+  "lifecycle": "stopped",
+  "health": "healthy",
+  "selected_backend": "backend.synthetic",
+  "active_streams": [],
+  "active_commands": [
+    "command.matter.particle.simulate.fixed_step",
+    "command.matter.particle.apply_sdf_field",
+    "command.matter.particle.export_render_payload",
+    "command.matter.particle.diagnostics.snapshot"
+  ],
+  "issues": []
+}

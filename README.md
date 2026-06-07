@@ -15,13 +15,15 @@ platform SDKs, dynamic loading, device APIs, or transport stacks.
 - `polar-h10`: public sensor package manifests, fixtures, provenance, and a
   Rust processor core for graph-resolved synthetic/replay validation.
 - `hand-animation`: generic hand-rig recording, coordinate-map, validation, and
-  animated mesh export contracts over Matter payload schemas.
+  animated mesh export contracts over Matter payload schemas, plus package
+  bridge descriptors for Matter SDF, dynamic mesh collider, and particle
+  simulation artifact flows.
 
 ## Validation
 
 ```powershell
 python tools\check_packages.py --repo-root .
-python -m py_compile tools\check_packages.py tools\package_testkit.py tools\check_device_readiness.py
+python -m py_compile tools\check_packages.py tools\hand_animation_matter_bridge.py tools\package_testkit.py tools\check_device_readiness.py
 cargo fmt --all --check
 cargo test --workspace
 cargo run -p polar-h10-core -- validate-goldens --package-root packages\polar-h10

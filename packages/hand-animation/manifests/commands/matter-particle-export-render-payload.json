@@ -1,0 +1,10 @@
+{
+  "$schema": "rusty.manifold.command.descriptor.v1",
+  "command_id": "command.matter.particle.export_render_payload",
+  "target_scope": "module.particle.simulator",
+  "input_schema": "rusty.manifold.command.input.matter_particle_export_render_payload.v1",
+  "required_capability": "manifold.module.control",
+  "required_lease_scope": "module.particle.simulator",
+  "safety_class": "bounded_mutation",
+  "operator_confirmation_required": false
+}

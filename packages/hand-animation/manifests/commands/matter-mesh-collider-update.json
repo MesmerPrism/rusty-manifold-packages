@@ -1,0 +1,10 @@
+{
+  "$schema": "rusty.manifold.command.descriptor.v1",
+  "command_id": "command.matter.mesh.collider.update",
+  "target_scope": "module.mesh.dynamic_collider",
+  "input_schema": "rusty.manifold.command.input.matter_mesh_collider_update.v1",
+  "required_capability": "manifold.module.control",
+  "required_lease_scope": "module.mesh.dynamic_collider",
+  "safety_class": "bounded_mutation",
+  "operator_confirmation_required": false
+}
