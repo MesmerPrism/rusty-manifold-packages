@@ -1,0 +1,48 @@
+{
+  "$schema": "rusty.manifold.module.manifest.v1",
+  "module_id": "module.mesh.dynamic_collider",
+  "module_kind": "processor",
+  "label": "Dynamic Mesh Collider",
+  "version": "0.1.0",
+  "lifecycle_states": [
+    "available",
+    "starting",
+    "running",
+    "stopping",
+    "stopped",
+    "failed"
+  ],
+  "provides_streams": [
+    "stream.matter.dynamic_collider_update",
+    "stream.matter.dynamic_collider_contact"
+  ],
+  "consumes_streams": [
+    "stream.hand.validation_mesh",
+    "stream.mesh.coordinate_map"
+  ],
+  "accepted_commands": [
+    "command.matter.mesh.collider.update"
+  ],
+  "required_capabilities": [
+    "manifold.module.control"
+  ],
+  "clock_policy": {
+    "source_domain": "clock.host_monotonic",
+    "correlation_required": true
+  },
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "platform_support": [
+    "backend.synthetic",
+    "backend.replay",
+    "backend.desktop_host"
+  ],
+  "issue_codes": [
+    "issue.collider_input_mesh_missing",
+    "issue.collider_coordinate_map_missing",
+    "issue.collider_topology_changed",
+    "issue.collider_contact_query_invalid"
+  ]
+}

@@ -9,6 +9,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from hand_animation_matter_bridge import check_hand_animation_matter_bridge
+
 
 ID_RE = re.compile(r"^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)*$")
 FORBIDDEN_TERMS = [
@@ -247,6 +249,9 @@ def add_package_checks(package: PackageBundle, checks: list[Check]) -> None:
     validate_provenance(prefix, package, checks)
     validate_processor_goldens(prefix, package, checks)
     validate_shell_handoffs(prefix, package, ids, checks)
+    if package_id == "package.hand_animation":
+        ok, evidence, failure = check_hand_animation_matter_bridge(package, ids)
+        append_check(checks, f"{prefix}.hand_animation_matter_bridge", ok, evidence, failure)
     validate_polar_readiness(prefix, package, modules_by_id, checks)
     validate_polar_completion_evidence(prefix, package, checks)
     validate_projected_motion_breath(prefix, package, checks)

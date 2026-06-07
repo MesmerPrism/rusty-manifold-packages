@@ -7,6 +7,9 @@
     "module.hand_motion.provider",
     "module.hand_motion.recorder",
     "module.mesh.coordinate_map",
+    "module.mesh.sdf_builder",
+    "module.mesh.dynamic_collider",
+    "module.particle.simulator",
     "module.hand_animation.exporter"
   ],
   "selected_backends": [
@@ -20,6 +23,18 @@
     },
     {
       "module_id": "module.mesh.coordinate_map",
+      "backend_id": "backend.synthetic"
+    },
+    {
+      "module_id": "module.mesh.sdf_builder",
+      "backend_id": "backend.synthetic"
+    },
+    {
+      "module_id": "module.mesh.dynamic_collider",
+      "backend_id": "backend.synthetic"
+    },
+    {
+      "module_id": "module.particle.simulator",
       "backend_id": "backend.synthetic"
     },
     {

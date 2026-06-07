@@ -45,7 +45,7 @@ own provenance and notice requirements; see `docs/LICENSING.md`.
 
 ```powershell
 python tools\check_packages.py --repo-root .
-python -m py_compile tools\check_packages.py tools\package_testkit.py tools\check_device_readiness.py
+python -m py_compile tools\check_packages.py tools\hand_animation_matter_bridge.py tools\package_testkit.py tools\check_device_readiness.py
 python tools\check_device_readiness.py --repo-root . --host-profile desktop
 python tools\check_device_readiness.py --repo-root . --host-profile mobile
 python tools\check_device_readiness.py --repo-root . --host-profile headset
@@ -53,3 +53,17 @@ python tools\check_device_readiness.py --repo-root . --host-profile headset
 
 Keep package ids behavior-oriented and generic. If a device-specific backend or
 private source note is needed, record it in the private planning repo first.
+
+## File Organization
+
+- Keep `tools\check_packages.py` as a dispatch-only CLI wrapper.
+- Keep `tools\package_testkit.py` focused on generic package validation:
+  loading, public-boundary scans, package exports, graph/deployment/runtime
+  links, generic scorecards, handoffs, and existing package check orchestration.
+- Put package-specific bridge validation in focused helper modules. The
+  hand-animation Matter mesh/SDF/collider/particle bridge lives in
+  `tools\hand_animation_matter_bridge.py`.
+- Do not add Matter SDF, particle simulation, mesh sampling, collider, or
+  coordinate-map algorithms to package validators or Manifold descriptors.
+  Package files may reference `rusty.matter.*` schema IDs and artifact URIs;
+  Matter remains the computational owner.

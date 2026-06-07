@@ -8,6 +8,9 @@
       "module.hand_motion.provider",
       "module.hand_motion.recorder",
       "module.mesh.coordinate_map",
+      "module.mesh.sdf_builder",
+      "module.mesh.dynamic_collider",
+      "module.particle.simulator",
       "module.hand_animation.exporter"
     ],
     "streams": [
@@ -16,6 +19,12 @@
       "stream.hand.validation_mesh",
       "stream.hand.recording_status",
       "stream.mesh.coordinate_map",
+      "stream.matter.sdf_grid",
+      "stream.matter.dynamic_collider_update",
+      "stream.matter.dynamic_collider_contact",
+      "stream.matter.particle_set",
+      "stream.matter.particle_diagnostics",
+      "stream.matter.particle_render_payload",
       "stream.hand.export_report"
     ],
     "commands": [
@@ -24,6 +33,12 @@
       "command.hand_record.stop",
       "command.hand_record.status",
       "command.coordinate_map.build",
+      "command.matter.mesh.sdf.build",
+      "command.matter.mesh.collider.update",
+      "command.matter.particle.simulate.fixed_step",
+      "command.matter.particle.apply_sdf_field",
+      "command.matter.particle.export_render_payload",
+      "command.matter.particle.diagnostics.snapshot",
       "command.hand_animation.export"
     ]
   },

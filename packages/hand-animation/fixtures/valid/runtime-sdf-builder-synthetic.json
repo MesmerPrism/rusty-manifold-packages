@@ -1,0 +1,13 @@
+{
+  "$schema": "rusty.manifold.module.runtime_state.v1",
+  "module_id": "module.mesh.sdf_builder",
+  "runtime_revision": 1,
+  "lifecycle": "stopped",
+  "health": "healthy",
+  "selected_backend": "backend.synthetic",
+  "active_streams": [],
+  "active_commands": [
+    "command.matter.mesh.sdf.build"
+  ],
+  "issues": []
+}

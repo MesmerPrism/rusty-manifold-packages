@@ -1,0 +1,10 @@
+{
+  "$schema": "rusty.manifold.command.descriptor.v1",
+  "command_id": "command.matter.mesh.sdf.build",
+  "target_scope": "module.mesh.sdf_builder",
+  "input_schema": "rusty.manifold.command.input.matter_mesh_sdf_build.v1",
+  "required_capability": "manifold.module.control",
+  "required_lease_scope": "module.mesh.sdf_builder",
+  "safety_class": "bounded_mutation",
+  "operator_confirmation_required": false
+}

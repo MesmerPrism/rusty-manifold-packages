@@ -1,0 +1,102 @@
+{
+  "$schema": "rusty.manifold.package.artifact_flow.v1",
+  "flow_id": "artifact_flow.hand_animation.matter_synthetic",
+  "package_id": "package.hand_animation",
+  "boundary": {
+    "authority": "manifold.package_descriptor",
+    "compute_owner": "rusty.matter",
+    "view_owner": "rusty.optics",
+    "payload_policy": "artifact_references_only"
+  },
+  "artifacts": [
+    {
+      "artifact_id": "artifact.hand.validation_mesh.synthetic",
+      "stream_id": "stream.hand.validation_mesh",
+      "schema_id": "rusty.matter.hand.validation_mesh_frame.v1",
+      "artifact_uri": "matter://fixtures/hand/synthetic-hand-validation-mesh-frame.json"
+    },
+    {
+      "artifact_id": "artifact.mesh.coordinate_map.synthetic",
+      "stream_id": "stream.mesh.coordinate_map",
+      "schema_id": "rusty.matter.mesh.coordinate_map.v1",
+      "artifact_uri": "matter://fixtures/mesh/unit-square-coordinate-map-summary.json"
+    },
+    {
+      "artifact_id": "artifact.matter.sdf_grid.synthetic",
+      "stream_id": "stream.matter.sdf_grid",
+      "schema_id": "rusty.matter.sdf.packed_grid.v1",
+      "artifact_uri": "matter://fixtures/sdf/unit-tetrahedron-packed-grid.json"
+    },
+    {
+      "artifact_id": "artifact.matter.dynamic_collider_update.synthetic",
+      "stream_id": "stream.matter.dynamic_collider_update",
+      "schema_id": "rusty.matter.mesh.dynamic_collider_update.v1",
+      "artifact_uri": "matter://fixtures/mesh/unit-square-dynamic-collider-summary.json"
+    },
+    {
+      "artifact_id": "artifact.matter.dynamic_collider_contact.synthetic",
+      "stream_id": "stream.matter.dynamic_collider_contact",
+      "schema_id": "rusty.matter.mesh.dynamic_collider_contact.v1",
+      "artifact_uri": "matter://fixtures/mesh/unit-square-dynamic-collider-summary.json"
+    },
+    {
+      "artifact_id": "artifact.matter.particle_set.synthetic",
+      "stream_id": "stream.matter.particle_set",
+      "schema_id": "rusty.matter.particle.set.v1",
+      "artifact_uri": "matter://fixtures/particles/sdf-attraction-step-summary.json"
+    },
+    {
+      "artifact_id": "artifact.matter.particle_diagnostics.synthetic",
+      "stream_id": "stream.matter.particle_diagnostics",
+      "schema_id": "rusty.matter.particle.simulation_diagnostics.v1",
+      "artifact_uri": "matter://fixtures/particles/sdf-attraction-step-summary.json"
+    },
+    {
+      "artifact_id": "artifact.matter.particle_render_payload.synthetic",
+      "stream_id": "stream.matter.particle_render_payload",
+      "schema_id": "rusty.matter.particle.render_payload.v1",
+      "artifact_uri": "matter://fixtures/particles/render-payload-summary.json"
+    }
+  ],
+  "steps": [
+    {
+      "step_id": "step.hand_validation_mesh_to_sdf_grid",
+      "module_id": "module.mesh.sdf_builder",
+      "command_id": "command.matter.mesh.sdf.build",
+      "input_artifact_ids": [
+        "artifact.hand.validation_mesh.synthetic"
+      ],
+      "output_artifact_ids": [
+        "artifact.matter.sdf_grid.synthetic"
+      ]
+    },
+    {
+      "step_id": "step.hand_validation_mesh_to_dynamic_collider",
+      "module_id": "module.mesh.dynamic_collider",
+      "command_id": "command.matter.mesh.collider.update",
+      "input_artifact_ids": [
+        "artifact.hand.validation_mesh.synthetic",
+        "artifact.mesh.coordinate_map.synthetic"
+      ],
+      "output_artifact_ids": [
+        "artifact.matter.dynamic_collider_update.synthetic",
+        "artifact.matter.dynamic_collider_contact.synthetic"
+      ]
+    },
+    {
+      "step_id": "step.sdf_and_collider_to_particle_payloads",
+      "module_id": "module.particle.simulator",
+      "command_id": "command.matter.particle.simulate.fixed_step",
+      "input_artifact_ids": [
+        "artifact.mesh.coordinate_map.synthetic",
+        "artifact.matter.sdf_grid.synthetic",
+        "artifact.matter.dynamic_collider_update.synthetic"
+      ],
+      "output_artifact_ids": [
+        "artifact.matter.particle_set.synthetic",
+        "artifact.matter.particle_diagnostics.synthetic",
+        "artifact.matter.particle_render_payload.synthetic"
+      ]
+    }
+  ]
+}

@@ -23,6 +23,7 @@ try {
         "-m",
         "py_compile",
         "tools\check_packages.py",
+        "tools\hand_animation_matter_bridge.py",
         "tools\package_testkit.py",
         "tools\check_device_readiness.py"
     )

@@ -1,0 +1,10 @@
+{
+  "$schema": "rusty.manifold.command.descriptor.v1",
+  "command_id": "command.matter.particle.apply_sdf_field",
+  "target_scope": "module.particle.simulator",
+  "input_schema": "rusty.manifold.command.input.matter_particle_apply_sdf_field.v1",
+  "required_capability": "manifold.module.control",
+  "required_lease_scope": "module.particle.simulator",
+  "safety_class": "bounded_mutation",
+  "operator_confirmation_required": false
+}

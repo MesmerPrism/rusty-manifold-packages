@@ -1,0 +1,55 @@
+{
+  "$schema": "rusty.manifold.module.manifest.v1",
+  "module_id": "module.particle.simulator",
+  "module_kind": "processor",
+  "label": "Particle Simulator",
+  "version": "0.1.0",
+  "lifecycle_states": [
+    "available",
+    "starting",
+    "running",
+    "stopping",
+    "stopped",
+    "failed"
+  ],
+  "provides_streams": [
+    "stream.matter.particle_set",
+    "stream.matter.particle_diagnostics",
+    "stream.matter.particle_render_payload"
+  ],
+  "consumes_streams": [
+    "stream.mesh.coordinate_map",
+    "stream.matter.sdf_grid",
+    "stream.matter.dynamic_collider_update"
+  ],
+  "accepted_commands": [
+    "command.matter.particle.simulate.fixed_step",
+    "command.matter.particle.apply_sdf_field",
+    "command.matter.particle.export_render_payload",
+    "command.matter.particle.diagnostics.snapshot"
+  ],
+  "required_capabilities": [
+    "manifold.module.control",
+    "manifold.module.inspect"
+  ],
+  "clock_policy": {
+    "source_domain": "clock.host_monotonic",
+    "correlation_required": true
+  },
+  "retention": {
+    "policy": "session"
+  },
+  "sensitivity": "sensitive",
+  "platform_support": [
+    "backend.synthetic",
+    "backend.replay",
+    "backend.desktop_host"
+  ],
+  "issue_codes": [
+    "issue.particle_input_missing",
+    "issue.particle_sdf_field_missing",
+    "issue.particle_collider_update_missing",
+    "issue.particle_step_budget_exceeded",
+    "issue.particle_artifact_write_failed"
+  ]
+}
