@@ -10,6 +10,8 @@ manifests, fixtures, and package validation.
   scorecard fixtures.
 - Synthetic packages before platform packages.
 - Generic biosignal package contracts before any device-specific runtime code.
+- Renderer-toolkit-free package manifests, fixtures, validators, and
+  descriptors.
 
 ## Non-Scope
 
@@ -20,6 +22,8 @@ manifests, fixtures, and package validation.
 - Local planning paths.
 - Private source history, package identities, product names, or sensor-specific
   implementation details.
+- Renderer-toolkit dependencies, toolkit-specific generated shells, UI
+  frameworks, or renderer assumptions.
 
 ## Validation
 
