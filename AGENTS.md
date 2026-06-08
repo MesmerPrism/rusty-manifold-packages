@@ -3,6 +3,11 @@
 This is the first-party package workspace for public-safe Manifold package
 manifests, fixtures, and package validation.
 
+Rusty Morphospace is the top-level project/platform umbrella. This workspace is
+the Manifold package lane inside that umbrella: package manifests, fixtures,
+scorecards, and package validation that may reference Matter, Lattice, Optics,
+or Manifold artifacts without becoming their authority.
+
 ## Scope
 
 - Package catalogs.
