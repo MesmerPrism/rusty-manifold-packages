@@ -12,6 +12,9 @@ manifests, fixtures, and package validation.
 - Generic biosignal package contracts before any device-specific runtime code.
 - Renderer-toolkit-free package manifests, fixtures, validators, and
   descriptors.
+- Lattice artifact references for spaces, transforms, tracked poses, view sets,
+  input roles, frame-state binding, calibration, validity, confidence, or
+  runtime capabilities when a package needs situated relation evidence.
 
 ## Non-Scope
 
@@ -24,6 +27,9 @@ manifests, fixtures, and package validation.
   implementation details.
 - Renderer-toolkit dependencies, toolkit-specific generated shells, UI
   frameworks, or renderer assumptions.
+- Lattice relation truth or platform runtime ownership. Packages may reference
+  `rusty.lattice.*` artifacts, but they do not compute or authorize situated
+  relation state.
 
 ## Validation
 
