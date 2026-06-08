@@ -8,6 +8,11 @@ the Manifold package lane inside that umbrella: package manifests, fixtures,
 scorecards, and package validation that may reference Matter, Lattice, Optics,
 or Manifold artifacts without becoming their authority.
 
+Project-owned source in this repo is licensed `AGPL-3.0-or-later`. Keep
+third-party dependencies, package evidence, generated reports, fixtures
+imported from other projects, binary releases, and external tools under their
+own provenance and notice requirements; see `docs/LICENSING.md`.
+
 ## Scope
 
 - Package catalogs.
