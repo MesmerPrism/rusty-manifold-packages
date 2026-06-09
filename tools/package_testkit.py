@@ -32,10 +32,8 @@ FORBIDDEN_TERMS = [
     "blimp",
     "gargoyle",
     "kiosk",
-    "viscereality",
-    "s:\\",
-    "c:\\",
 ]
+WINDOWS_ABSOLUTE_PATH_RE = re.compile(r"\b[a-z]:[\\/]", re.IGNORECASE)
 BOUNDARY_SKIP = {"tools/check_packages.py", "tools/package_testkit.py"}
 BOUNDARY_TERM_EXCEPTIONS = {
     "packages/polar-h10/manifests/provenance.manifold.json": {"ble", "gatt"}
@@ -192,6 +190,8 @@ def add_boundary_check(repo_root: Path, checks: list[Check]) -> None:
                 continue
             if contains_forbidden_term(lower, term):
                 offenders.append(f"{relative} contains {term}")
+        if WINDOWS_ABSOLUTE_PATH_RE.search(lower):
+            offenders.append(f"{relative} contains a Windows absolute path")
     if offenders:
         checks.append(fail("validation.public_boundary_terms", "; ".join(offenders)))
     else:

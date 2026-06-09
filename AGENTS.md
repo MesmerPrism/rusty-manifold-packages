@@ -52,7 +52,8 @@ python tools\check_device_readiness.py --repo-root . --host-profile headset
 ```
 
 Keep package ids behavior-oriented and generic. If a device-specific backend or
-private source note is needed, record it in the private planning repo first.
+internal-only source note is needed, record it outside the public package repo
+first.
 
 ## File Organization
 
