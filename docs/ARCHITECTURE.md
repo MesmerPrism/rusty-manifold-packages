@@ -50,8 +50,8 @@ authority. External host-validation repos execute package evidence routes.
   golden checks. These cores stay package-scoped and must not become platform
   runtimes.
 - `packages/projected-motion-breath/crates/projected-motion-breath-core/src/lib.rs`:
-  PMB core facade, public reports, tracker flow, live-route processing, and
-  validators.
+  PMB core facade, public reports, tracker flow, live-route processing, and CLI
+  command dispatch.
 - `packages/projected-motion-breath/crates/projected-motion-breath-core/src/documents.rs`:
   private serde document models and fixture readers for PMB profiles, commands,
   source bindings, adapter-normalization cases, controller preflight, live-route
@@ -60,6 +60,10 @@ authority. External host-validation repos execute package evidence routes.
   private scalar, vector, projection-axis, quantile, quaternion, and deadband
   helpers shared by PMB tracker, live-route, adapter-normalization, and
   validation code.
+- `packages/projected-motion-breath/crates/projected-motion-breath-core/src/validation.rs`:
+  PMB profile, command, source-binding, adapter-normalization, controller
+  preflight, live-route, and golden-fixture validators plus the
+  `validate_package_goldens` report boundary.
 
 ## Boundaries
 
