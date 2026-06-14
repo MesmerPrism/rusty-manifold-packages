@@ -45,7 +45,7 @@ own provenance and notice requirements; see `docs/LICENSING.md`.
 
 ```powershell
 python tools\check_packages.py --repo-root .
-python -m py_compile tools\check_packages.py tools\hand_animation_matter_bridge.py tools\package_testkit.py tools\check_device_readiness.py
+python -m py_compile tools\check_packages.py tools\hand_animation_matter_bridge.py tools\package_testkit.py tools\package_testkit_common.py tools\projected_motion_breath_testkit.py tools\check_device_readiness.py
 python tools\check_device_readiness.py --repo-root . --host-profile desktop
 python tools\check_device_readiness.py --repo-root . --host-profile mobile
 python tools\check_device_readiness.py --repo-root . --host-profile headset
@@ -58,9 +58,15 @@ first.
 ## File Organization
 
 - Keep `tools\check_packages.py` as a dispatch-only CLI wrapper.
-- Keep `tools\package_testkit.py` focused on generic package validation:
-  loading, public-boundary scans, package exports, graph/deployment/runtime
-  links, generic scorecards, handoffs, and existing package check orchestration.
+- Keep `tools\package_testkit.py` focused on generic package validation
+  orchestration: loading, public-boundary scans, package exports,
+  graph/deployment/runtime links, generic scorecards, handoffs, Polar checks,
+  and existing package check orchestration. Shared dataclasses, JSON readers,
+  and numeric/check helpers live in `tools\package_testkit_common.py`.
+- Keep projected-motion-breath package fixture validation in
+  `tools\projected_motion_breath_testkit.py`; do not rebuild PMB profile,
+  command, source-adapter, source-binding, adapter-normalization, or golden
+  fixture checks in the generic facade.
 - Put package-specific bridge validation in focused helper modules. The
   hand-animation Matter mesh/SDF/collider/particle bridge lives in
   `tools\hand_animation_matter_bridge.py`.

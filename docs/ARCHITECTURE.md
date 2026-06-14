@@ -39,9 +39,14 @@ authority. External host-validation repos execute package evidence routes.
 ## Module Map
 
 - `tools/check_packages.py`: dispatch-only package validator entrypoint.
-- `tools/package_testkit.py`: shared validation helpers for package loading,
-  public-boundary scans, exports, graph/deployment/runtime links, scorecards,
-  handoffs, and package orchestration.
+- `tools/package_testkit.py`: generic package validation orchestration for
+  package loading, public-boundary scans, exports, graph/deployment/runtime
+  links, scorecards, handoffs, Polar checks, and package orchestration.
+- `tools/package_testkit_common.py`: shared validation dataclasses, JSON
+  readers, dotted-id grammar, numeric helpers, and check record helpers.
+- `tools/projected_motion_breath_testkit.py`: projected-motion-breath package
+  validation for profile/command fixtures, processor goldens, source adapter
+  descriptors, source bindings, and adapter-normalization fixtures.
 - `tools/hand_animation_matter_bridge.py`: hand-animation bridge validation
   over Matter artifact references.
 - `tools/check_device_readiness.py`: host-profile readiness validation for

@@ -25,6 +25,8 @@ try {
         "tools\check_packages.py",
         "tools\hand_animation_matter_bridge.py",
         "tools\package_testkit.py",
+        "tools\package_testkit_common.py",
+        "tools\projected_motion_breath_testkit.py",
         "tools\check_device_readiness.py"
     )
     Invoke-Checked "cargo fmt" "cargo" @("fmt", "--all", "--check")

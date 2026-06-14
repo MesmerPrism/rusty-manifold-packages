@@ -23,7 +23,7 @@ platform SDKs, dynamic loading, device APIs, or transport stacks.
 
 ```powershell
 python tools\check_packages.py --repo-root .
-python -m py_compile tools\check_packages.py tools\hand_animation_matter_bridge.py tools\package_testkit.py tools\check_device_readiness.py
+python -m py_compile tools\check_packages.py tools\hand_animation_matter_bridge.py tools\package_testkit.py tools\package_testkit_common.py tools\projected_motion_breath_testkit.py tools\check_device_readiness.py
 cargo fmt --all --check
 cargo test --workspace
 cargo run -p polar-h10-core -- validate-goldens --package-root packages\polar-h10
