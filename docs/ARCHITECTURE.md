@@ -50,8 +50,11 @@ authority. External host-validation repos execute package evidence routes.
   golden checks. These cores stay package-scoped and must not become platform
   runtimes.
 - `packages/projected-motion-breath/crates/projected-motion-breath-core/src/lib.rs`:
-  PMB core facade, public reports, tracker flow, live-route processing, and CLI
-  command dispatch.
+  PMB core facade, public reexports, tracker flow, controller preflight, and
+  shared adapter/profile helpers.
+- `packages/projected-motion-breath/crates/projected-motion-breath-core/src/live_route.rs`:
+  live-route report models, route execution, transport-event conversion,
+  incremental transport processor state, and live estimator state.
 - `packages/projected-motion-breath/crates/projected-motion-breath-core/src/documents.rs`:
   private serde document models and fixture readers for PMB profiles, commands,
   source bindings, adapter-normalization cases, controller preflight, live-route
