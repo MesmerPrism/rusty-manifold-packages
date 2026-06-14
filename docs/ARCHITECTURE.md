@@ -54,6 +54,10 @@ authority. External host-validation repos execute package evidence routes.
 - `packages/*/crates/*-core`: deterministic package-local processor cores for
   golden checks. These cores stay package-scoped and must not become platform
   runtimes.
+- `packages/polar-h10/crates/polar-h10-core/src/lib.rs`: Polar H10 core
+  facade, graph/runtime computation, stream shaping, and public processor API.
+- `packages/polar-h10/crates/polar-h10-core/src/goldens.rs`: Polar H10
+  processor golden fixture validation plus golden comparison helpers.
 - `packages/projected-motion-breath/crates/projected-motion-breath-core/src/lib.rs`:
   PMB core facade, public reexports, tracker flow, controller preflight, and
   shared adapter/profile helpers.

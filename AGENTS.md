@@ -71,7 +71,9 @@ first.
   hand-animation Matter mesh/SDF/collider/particle bridge lives in
   `tools\hand_animation_matter_bridge.py`.
 - Keep package-local Rust processor cores as facades plus focused helper
-  modules. In projected-motion-breath-core, `documents.rs` owns private serde
+  modules. In polar-h10-core, `goldens.rs` owns processor golden fixture
+  validation while `lib.rs` remains graph/runtime computation and public
+  facade. In projected-motion-breath-core, `documents.rs` owns private serde
   document models and fixture readers, and `math.rs` owns private scalar,
   vector, projection, and deadband helpers. `live_route.rs` owns live-route
   reports, route execution, transport-event conversion, incremental transport
