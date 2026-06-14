@@ -49,6 +49,13 @@ authority. External host-validation repos execute package evidence routes.
 - `packages/*/crates/*-core`: deterministic package-local processor cores for
   golden checks. These cores stay package-scoped and must not become platform
   runtimes.
+- `packages/projected-motion-breath/crates/projected-motion-breath-core/src/lib.rs`:
+  PMB core facade, public reports, tracker flow, live-route processing, and
+  validators.
+- `packages/projected-motion-breath/crates/projected-motion-breath-core/src/documents.rs`:
+  private serde document models and fixture readers for PMB profiles, commands,
+  source bindings, adapter-normalization cases, controller preflight, live-route
+  fixtures, and processor goldens.
 
 ## Boundaries
 

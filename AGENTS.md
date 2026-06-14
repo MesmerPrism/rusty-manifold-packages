@@ -64,6 +64,10 @@ first.
 - Put package-specific bridge validation in focused helper modules. The
   hand-animation Matter mesh/SDF/collider/particle bridge lives in
   `tools\hand_animation_matter_bridge.py`.
+- Keep package-local Rust processor cores as facades plus focused helper
+  modules. In projected-motion-breath-core, `documents.rs` owns private serde
+  document models and fixture readers; do not rebuild those schemas inside
+  `lib.rs`.
 - Do not add Matter SDF, particle simulation, mesh sampling, collider, or
   coordinate-map algorithms to package validators or Manifold descriptors.
   Package files may reference `rusty.matter.*` schema IDs and artifact URIs;
