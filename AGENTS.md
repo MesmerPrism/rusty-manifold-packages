@@ -66,8 +66,9 @@ first.
   `tools\hand_animation_matter_bridge.py`.
 - Keep package-local Rust processor cores as facades plus focused helper
   modules. In projected-motion-breath-core, `documents.rs` owns private serde
-  document models and fixture readers; do not rebuild those schemas inside
-  `lib.rs`.
+  document models and fixture readers, and `math.rs` owns private scalar,
+  vector, projection, and deadband helpers; do not rebuild those schemas or
+  helper families inside `lib.rs`.
 - Do not add Matter SDF, particle simulation, mesh sampling, collider, or
   coordinate-map algorithms to package validators or Manifold descriptors.
   Package files may reference `rusty.matter.*` schema IDs and artifact URIs;
