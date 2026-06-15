@@ -197,6 +197,9 @@ pub(super) fn validate_profile_document(profile: &ProfileDocument) -> Vec<String
         profile.classifier.delta_threshold,
         profile.classifier.stale_timeout_s,
     ));
+    issues.extend(validate_controller_state_classifier(
+        &profile.controller_state,
+    ));
     issues.extend(validate_quality(
         profile.quality.require_tracked,
         profile.quality.min_quality01,
@@ -230,6 +233,35 @@ fn validate_projection(
             Some(axis) if finite_nonzero_axis(axis) => {}
             _ => issues.push(BreathIssue::ProfileInvalid.code().to_string()),
         }
+    }
+    issues
+}
+
+fn validate_controller_state_classifier(
+    classifier: &ProfileControllerStateClassifier,
+) -> Vec<String> {
+    let mut issues = Vec::new();
+    let allowed_modes = [
+        "projected_volume_delta",
+        "volume_delta",
+        "fixed_controller_orientation",
+    ];
+    if !allowed_modes.contains(&classifier.mode.as_str()) {
+        issues.push(BreathIssue::ProfileInvalid.code().to_string());
+    }
+    if !finite_nonzero_axis(classifier.orientation_axis)
+        || !classifier.inhale_threshold.is_finite()
+        || !classifier.exhale_threshold.is_finite()
+        || classifier.exhale_threshold >= classifier.inhale_threshold
+        || !classifier.rotation_guard_degrees.is_finite()
+        || classifier.rotation_guard_degrees <= 0.0
+        || !classifier.moving_average_guard.is_finite()
+        || classifier.moving_average_guard <= 0.0
+        || classifier.short_window == 0
+        || classifier.long_window < classifier.short_window
+        || !unit_interval(classifier.neutral_volume01)
+    {
+        issues.push(BreathIssue::ProfileInvalid.code().to_string());
     }
     issues
 }
@@ -327,6 +359,39 @@ fn validate_profile_patch(patch: &ProfilePatch) -> Vec<String> {
                 .stale_timeout_s
                 .unwrap_or(DEFAULT_STALE_TIMEOUT_S),
         ));
+    }
+    if let Some(controller_state) = &patch.controller_state {
+        let default = ProfileControllerStateClassifier::default();
+        let classifier = ProfileControllerStateClassifier {
+            mode: controller_state
+                .mode
+                .clone()
+                .unwrap_or_else(|| default.mode.clone()),
+            orientation_axis: controller_state
+                .orientation_axis
+                .unwrap_or(default.orientation_axis),
+            inhale_threshold: controller_state
+                .inhale_threshold
+                .unwrap_or(default.inhale_threshold),
+            exhale_threshold: controller_state
+                .exhale_threshold
+                .unwrap_or(default.exhale_threshold),
+            rotation_guard_degrees: controller_state
+                .rotation_guard_degrees
+                .unwrap_or(default.rotation_guard_degrees),
+            moving_average_guard: controller_state
+                .moving_average_guard
+                .unwrap_or(default.moving_average_guard),
+            short_window: controller_state
+                .short_window
+                .unwrap_or(default.short_window),
+            long_window: controller_state.long_window.unwrap_or(default.long_window),
+            invert_left_hand: default.invert_left_hand,
+            neutral_volume01: controller_state
+                .neutral_volume01
+                .unwrap_or(default.neutral_volume01),
+        };
+        issues.extend(validate_controller_state_classifier(&classifier));
     }
     if let Some(quality) = &patch.quality {
         if let Some(min_quality01) = quality.min_quality01 {

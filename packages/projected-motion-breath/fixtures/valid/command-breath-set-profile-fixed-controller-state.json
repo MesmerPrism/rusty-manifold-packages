@@ -1,0 +1,7 @@
+{
+  "$schema": "rusty.manifold.command.payload.breath_set_profile.v1",
+  "request_id": "request.projected_motion_breath.set_profile.fixed_controller_state",
+  "command_id": "command.breath.set_profile",
+  "target_module_id": "module.breath.projected_motion",
+  "profile_path": "fixtures/valid/profile-headset-controller-fixed-orientation-state.json"
+}

@@ -85,6 +85,8 @@ pub(super) struct ProfileDocument {
     pub(super) normalization: ProfileNormalization,
     pub(super) smoothing: ProfileSmoothing,
     pub(super) classifier: ProfileClassifier,
+    #[serde(default)]
+    pub(super) controller_state: ProfileControllerStateClassifier,
     pub(super) quality: ProfileQuality,
 }
 
@@ -127,6 +129,83 @@ pub(super) struct ProfileClassifier {
 }
 
 #[derive(Debug, Deserialize)]
+pub(super) struct ProfileControllerStateClassifier {
+    #[serde(default = "default_controller_state_mode")]
+    pub(super) mode: String,
+    #[serde(default = "default_controller_state_orientation_axis")]
+    pub(super) orientation_axis: [f64; 3],
+    #[serde(default = "default_controller_state_inhale_threshold")]
+    pub(super) inhale_threshold: f64,
+    #[serde(default = "default_controller_state_exhale_threshold")]
+    pub(super) exhale_threshold: f64,
+    #[serde(default = "default_controller_state_rotation_guard_degrees")]
+    pub(super) rotation_guard_degrees: f64,
+    #[serde(default = "default_controller_state_moving_average_guard")]
+    pub(super) moving_average_guard: f64,
+    #[serde(default = "default_controller_state_short_window")]
+    pub(super) short_window: u64,
+    #[serde(default = "default_controller_state_long_window")]
+    pub(super) long_window: u64,
+    #[serde(default)]
+    pub(super) invert_left_hand: bool,
+    #[serde(default = "default_controller_state_neutral_volume01")]
+    pub(super) neutral_volume01: f64,
+}
+
+impl Default for ProfileControllerStateClassifier {
+    fn default() -> Self {
+        Self {
+            mode: default_controller_state_mode(),
+            orientation_axis: default_controller_state_orientation_axis(),
+            inhale_threshold: default_controller_state_inhale_threshold(),
+            exhale_threshold: default_controller_state_exhale_threshold(),
+            rotation_guard_degrees: default_controller_state_rotation_guard_degrees(),
+            moving_average_guard: default_controller_state_moving_average_guard(),
+            short_window: default_controller_state_short_window(),
+            long_window: default_controller_state_long_window(),
+            invert_left_hand: false,
+            neutral_volume01: default_controller_state_neutral_volume01(),
+        }
+    }
+}
+
+fn default_controller_state_mode() -> String {
+    "projected_volume_delta".to_string()
+}
+
+fn default_controller_state_orientation_axis() -> [f64; 3] {
+    [0.0, 0.0, -1.0]
+}
+
+fn default_controller_state_inhale_threshold() -> f64 {
+    0.001
+}
+
+fn default_controller_state_exhale_threshold() -> f64 {
+    -0.00057
+}
+
+fn default_controller_state_rotation_guard_degrees() -> f64 {
+    0.5
+}
+
+fn default_controller_state_moving_average_guard() -> f64 {
+    0.025
+}
+
+fn default_controller_state_short_window() -> u64 {
+    24
+}
+
+fn default_controller_state_long_window() -> u64 {
+    180
+}
+
+fn default_controller_state_neutral_volume01() -> f64 {
+    0.5
+}
+
+#[derive(Debug, Deserialize)]
 pub(super) struct ProfileQuality {
     pub(super) require_tracked: bool,
     pub(super) min_quality01: f64,
@@ -140,6 +219,8 @@ pub(super) struct ProfilePatch {
     pub(super) calibration: Option<CalibrationPatch>,
     #[serde(default)]
     pub(super) classifier: Option<ClassifierPatch>,
+    #[serde(default)]
+    pub(super) controller_state: Option<ControllerStatePatch>,
     #[serde(default)]
     pub(super) quality: Option<QualityPatch>,
 }
@@ -168,6 +249,28 @@ pub(super) struct ClassifierPatch {
     pub(super) delta_threshold: Option<f64>,
     #[serde(default)]
     pub(super) stale_timeout_s: Option<f64>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+pub(super) struct ControllerStatePatch {
+    #[serde(default)]
+    pub(super) mode: Option<String>,
+    #[serde(default)]
+    pub(super) orientation_axis: Option<[f64; 3]>,
+    #[serde(default)]
+    pub(super) inhale_threshold: Option<f64>,
+    #[serde(default)]
+    pub(super) exhale_threshold: Option<f64>,
+    #[serde(default)]
+    pub(super) rotation_guard_degrees: Option<f64>,
+    #[serde(default)]
+    pub(super) moving_average_guard: Option<f64>,
+    #[serde(default)]
+    pub(super) short_window: Option<u64>,
+    #[serde(default)]
+    pub(super) long_window: Option<u64>,
+    #[serde(default)]
+    pub(super) neutral_volume01: Option<f64>,
 }
 
 #[derive(Debug, Default, Deserialize)]

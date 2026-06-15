@@ -670,7 +670,7 @@ mod tests {
         let report = validate_package_goldens(package_root).expect("goldens load");
         assert_eq!(report.status, "pass");
         assert_eq!(report.checked_profiles, 1);
-        assert_eq!(report.checked_command_payloads, 5);
+        assert_eq!(report.checked_command_payloads, 6);
         assert_eq!(report.checked_damaged_command_payloads, 6);
         assert_eq!(report.checked_source_bindings, 5);
         assert_eq!(report.checked_damaged_source_bindings, 2);

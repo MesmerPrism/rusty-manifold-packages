@@ -3,7 +3,7 @@
 use crate::documents::{
     read_live_route_fixture, read_profile, read_source_binding, AdapterNormalizationInput,
     LiveRouteExecutionMode, LiveRouteFixture, LiveRouteSourceFixture, NormalizedAdapterSample,
-    ProfileDocument, SourceBinding,
+    ProfileControllerStateClassifier, ProfileDocument, SourceBinding,
 };
 use crate::math::*;
 use crate::validation::{
@@ -794,8 +794,114 @@ struct ControllerCalibrationModel {
     bound_max: f64,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ControllerStateClassifierMode {
+    ProjectedVolumeDelta,
+    FixedControllerOrientation,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct FixedControllerStateEstimate {
+    projection: f64,
+    phase: &'static str,
+    quality: &'static str,
+    tracking01: f64,
+}
+
+#[derive(Debug)]
+struct FixedControllerStateClassifier {
+    orientation_axis: [f64; 3],
+    last_position: Option<[f64; 3]>,
+    last_orientation: [f64; 4],
+    delta_accumulator: f64,
+    delta_history: Vec<f64>,
+}
+
+impl FixedControllerStateClassifier {
+    fn new(settings: &ProfileControllerStateClassifier) -> Self {
+        Self {
+            orientation_axis: normalized_axis(settings.orientation_axis)
+                .unwrap_or([0.0, 0.0, -1.0]),
+            last_position: None,
+            last_orientation: [0.0, 0.0, 0.0, 1.0],
+            delta_accumulator: 0.0,
+            delta_history: Vec::new(),
+        }
+    }
+
+    fn push_sample(
+        &mut self,
+        settings: &ProfileControllerStateClassifier,
+        sample: &RigidMotionSample,
+        orientation: [f64; 4],
+    ) -> FixedControllerStateEstimate {
+        let Some(last_position) = self.last_position else {
+            self.last_position = Some(sample.position_m);
+            self.last_orientation = orientation;
+            return FixedControllerStateEstimate {
+                projection: 0.0,
+                phase: "pause",
+                quality: "state_fixed_orientation",
+                tracking01: sample.quality01,
+            };
+        };
+
+        let rotation_delta = quat_angle_degrees(self.last_orientation, orientation);
+        let axis_world = rotate_vec3_by_quat(
+            self.orientation_axis,
+            normalize_quat_or_identity(orientation),
+        );
+        let delta = dot3(sub3(sample.position_m, last_position), axis_world);
+        self.delta_accumulator += delta;
+        push_window(
+            &mut self.delta_history,
+            self.delta_accumulator,
+            settings.long_window as usize,
+        );
+        let short_mean = mean_trailing_f64(&self.delta_history, settings.short_window as usize);
+        let long_mean = mean_trailing_f64(&self.delta_history, self.delta_history.len());
+        let ma_diff = short_mean - long_mean;
+        self.last_position = Some(sample.position_m);
+        self.last_orientation = orientation;
+
+        if rotation_delta > settings.rotation_guard_degrees
+            || ma_diff.abs() > settings.moving_average_guard
+        {
+            return FixedControllerStateEstimate {
+                projection: ma_diff,
+                phase: "bad_tracking",
+                quality: "bad_tracking",
+                tracking01: 0.0,
+            };
+        }
+
+        let mut phase = if ma_diff > settings.inhale_threshold {
+            "inhale"
+        } else if ma_diff < settings.exhale_threshold {
+            "exhale"
+        } else {
+            "pause"
+        };
+        if settings.invert_left_hand && controller_sample_is_left_hand(sample) {
+            phase = match phase {
+                "inhale" => "exhale",
+                "exhale" => "inhale",
+                other => other,
+            };
+        }
+
+        FixedControllerStateEstimate {
+            projection: ma_diff,
+            phase,
+            quality: "state_fixed_orientation",
+            tracking01: sample.quality01,
+        }
+    }
+}
+
 #[derive(Debug)]
 struct ControllerLiveEstimatorState {
+    state_mode: ControllerStateClassifierMode,
     accepted_target: usize,
     origin: Option<[f64; 3]>,
     calibration_gate: DeadbandVec3,
@@ -811,11 +917,13 @@ struct ControllerLiveEstimatorState {
     has_projection_ema: bool,
     projection_ema: f64,
     previous_volume: Option<f64>,
+    fixed_state_classifier: FixedControllerStateClassifier,
 }
 
 impl ControllerLiveEstimatorState {
     fn new(profile: &ProfileDocument) -> Self {
         Self {
+            state_mode: controller_state_classifier_mode(&profile.controller_state),
             accepted_target: profile.calibration.accepted_sample_count.max(8) as usize,
             origin: None,
             calibration_gate: DeadbandVec3::new(),
@@ -831,10 +939,14 @@ impl ControllerLiveEstimatorState {
             has_projection_ema: false,
             projection_ema: 0.0,
             previous_volume: None,
+            fixed_state_classifier: FixedControllerStateClassifier::new(&profile.controller_state),
         }
     }
 
     fn calibration_summary(&self) -> (String, usize, usize) {
+        if self.state_mode == ControllerStateClassifierMode::FixedControllerOrientation {
+            return ("state_fixed_orientation".to_string(), 0, 0);
+        }
         (
             if self.model.is_some() {
                 "calibrated"
@@ -865,6 +977,35 @@ impl ControllerLiveEstimatorState {
         }
         let origin = *self.origin.get_or_insert(sample.position_m);
         let orientation = sample.orientation_xyzw.unwrap_or(self.last_orientation);
+        if self.state_mode == ControllerStateClassifierMode::FixedControllerOrientation {
+            if !should_emit_analysis_time(
+                &mut self.output_last_time,
+                sample.sample_time_s,
+                profile.smoothing.analysis_rate_hz,
+            ) {
+                return (Vec::new(), Vec::new());
+            }
+            let estimate = self.fixed_state_classifier.push_sample(
+                &profile.controller_state,
+                sample,
+                orientation,
+            );
+            let output = live_breath_sample_with_quality(
+                next_sequence_id,
+                sample.source_id.clone(),
+                source_stream_id,
+                normalized_stream_id,
+                sample_index,
+                sample.sample_time_s,
+                sample.host_time_s,
+                estimate.projection,
+                profile.controller_state.neutral_volume01,
+                estimate.phase,
+                estimate.tracking01,
+                estimate.quality,
+            );
+            return (vec![output], Vec::new());
+        }
         if self.model.is_none() {
             if should_emit_analysis_time(
                 &mut self.calibration_last_time,
@@ -1033,6 +1174,36 @@ fn live_breath_sample(
     phase: &str,
     tracking01: f64,
 ) -> LiveBreathSample {
+    live_breath_sample_with_quality(
+        next_sequence_id,
+        source_id,
+        source_stream_id,
+        normalized_stream_id,
+        sample_index,
+        sample_time_s,
+        host_time_s,
+        projection,
+        volume01,
+        phase,
+        tracking01,
+        "stable",
+    )
+}
+
+fn live_breath_sample_with_quality(
+    next_sequence_id: &mut u64,
+    source_id: String,
+    source_stream_id: &str,
+    normalized_stream_id: &str,
+    sample_index: usize,
+    sample_time_s: f64,
+    host_time_s: f64,
+    projection: f64,
+    volume01: f64,
+    phase: &str,
+    tracking01: f64,
+    quality: &str,
+) -> LiveBreathSample {
     let sequence_id = *next_sequence_id;
     *next_sequence_id = (*next_sequence_id).saturating_add(1);
     LiveBreathSample {
@@ -1048,8 +1219,33 @@ fn live_breath_sample(
         volume01,
         phase: phase.to_string(),
         tracking01: tracking01.clamp(0.0, 1.0),
-        quality: "stable".to_string(),
+        quality: quality.to_string(),
     }
+}
+
+fn controller_state_classifier_mode(
+    settings: &ProfileControllerStateClassifier,
+) -> ControllerStateClassifierMode {
+    match settings.mode.as_str() {
+        "fixed_controller_orientation" => ControllerStateClassifierMode::FixedControllerOrientation,
+        _ => ControllerStateClassifierMode::ProjectedVolumeDelta,
+    }
+}
+
+fn controller_sample_is_left_hand(sample: &RigidMotionSample) -> bool {
+    let source_id = sample.source_id.to_ascii_lowercase();
+    let frame_id = sample.frame_id.to_ascii_lowercase();
+    source_id.contains("left") || frame_id.contains("left")
+}
+
+fn mean_trailing_f64(values: &[f64], window: usize) -> f64 {
+    let len = values.len();
+    if len == 0 {
+        return 0.0;
+    }
+    let start = len.saturating_sub(window.max(1));
+    let count = len - start;
+    values[start..].iter().sum::<f64>() / count as f64
 }
 
 fn normalize_live_selected_source_preference(value: &str) -> String {
@@ -1432,6 +1628,18 @@ fn estimate_controller_transport_breath_samples(
     normalized_samples: &[NormalizedAdapterSample],
     next_sequence_id: &mut u64,
 ) -> (Vec<LiveBreathSample>, Vec<String>) {
+    if controller_state_classifier_mode(&profile.controller_state)
+        == ControllerStateClassifierMode::FixedControllerOrientation
+    {
+        return estimate_controller_fixed_state_breath_samples(
+            source_fixture,
+            binding,
+            profile,
+            normalized_samples,
+            next_sequence_id,
+        );
+    }
+
     const MAX_DEGREES_PER_SAMPLE: f64 = 2.0;
     const MAX_POSITION_JUMP_M: f64 = 0.008;
 
@@ -1631,6 +1839,73 @@ fn estimate_controller_transport_breath_samples(
     if output.is_empty() {
         issues.push(format!(
             "{}:issue.live_transport_controller_estimates_missing_after_calibration",
+            source_fixture.source_id
+        ));
+    }
+    (output, issues)
+}
+
+fn estimate_controller_fixed_state_breath_samples(
+    source_fixture: &LiveRouteSourceFixture,
+    binding: &SourceBinding,
+    profile: &ProfileDocument,
+    normalized_samples: &[NormalizedAdapterSample],
+    next_sequence_id: &mut u64,
+) -> (Vec<LiveBreathSample>, Vec<String>) {
+    let rigid_samples: Vec<(usize, &RigidMotionSample)> = normalized_samples
+        .iter()
+        .enumerate()
+        .filter_map(|(index, sample)| match sample {
+            NormalizedAdapterSample::Rigid(sample) => Some((index, sample)),
+            NormalizedAdapterSample::Vector(_) => None,
+        })
+        .collect();
+    let mut output = Vec::new();
+    let mut issues = Vec::new();
+    if rigid_samples.is_empty() {
+        issues.push(format!(
+            "{}:issue.live_transport_controller_samples_missing",
+            source_fixture.source_id
+        ));
+        return (output, issues);
+    }
+
+    let mut analysis_last_time = None;
+    let mut classifier = FixedControllerStateClassifier::new(&profile.controller_state);
+    for (sample_index, sample) in rigid_samples {
+        if !rigid_sample_ready(profile, sample) {
+            continue;
+        }
+        if !should_emit_analysis_time(
+            &mut analysis_last_time,
+            sample.sample_time_s,
+            profile.smoothing.analysis_rate_hz,
+        ) {
+            continue;
+        }
+        let orientation = sample.orientation_xyzw.unwrap_or([0.0, 0.0, 0.0, 1.0]);
+        let estimate = classifier.push_sample(&profile.controller_state, sample, orientation);
+        output.push(LiveBreathSample {
+            sequence_id: *next_sequence_id,
+            source_id: sample.source_id.clone(),
+            input_stream_id: source_fixture.source_stream_id.clone(),
+            normalized_stream_id: binding.selected_output_stream_id.clone(),
+            output_stream_id: STREAM_BREATH_VOLUME.to_string(),
+            sample_index,
+            sample_time_s: sample.sample_time_s,
+            host_time_s: sample.host_time_s,
+            projection: estimate.projection,
+            volume01: profile.controller_state.neutral_volume01,
+            phase: estimate.phase.to_string(),
+            tracking01: estimate.tracking01.clamp(0.0, 1.0),
+            quality: estimate.quality.to_string(),
+        });
+        *next_sequence_id = (*next_sequence_id).saturating_add(1);
+    }
+
+    if output.is_empty() {
+        issues.push(format!(
+            "{}:issue.live_transport_controller_fixed_state_estimates_missing",
             source_fixture.source_id
         ));
     }
@@ -2186,4 +2461,76 @@ fn seconds_to_unix_ns(seconds: f64) -> i64 {
     (seconds.max(0.0) * 1_000_000_000.0)
         .round()
         .clamp(0.0, i64::MAX as f64) as i64
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn fixed_state_settings() -> ProfileControllerStateClassifier {
+        ProfileControllerStateClassifier {
+            mode: "fixed_controller_orientation".to_string(),
+            orientation_axis: [0.0, 1.0, 0.0],
+            inhale_threshold: 0.0002,
+            exhale_threshold: -0.0002,
+            rotation_guard_degrees: 30.0,
+            moving_average_guard: 0.25,
+            short_window: 2,
+            long_window: 4,
+            invert_left_hand: false,
+            neutral_volume01: 0.5,
+        }
+    }
+
+    fn rigid_sample(y: f64, orientation_xyzw: [f64; 4]) -> RigidMotionSample {
+        RigidMotionSample {
+            source_id: "source.downstream.controller_pose.right".to_string(),
+            sample_time_s: 1.0,
+            host_time_s: 1.01,
+            frame_id: "frame.headset.stage.right".to_string(),
+            position_m: [0.0, y, 0.0],
+            orientation_xyzw: Some(orientation_xyzw),
+            connected: true,
+            tracked: true,
+            quality01: 0.98,
+        }
+    }
+
+    #[test]
+    fn fixed_controller_state_classifier_detects_inhale_and_exhale() {
+        let settings = fixed_state_settings();
+        let mut classifier = FixedControllerStateClassifier::new(&settings);
+        let identity = [0.0, 0.0, 0.0, 1.0];
+
+        let phases: Vec<&str> = [0.0, 0.002, 0.004, 0.006, 0.004, 0.002]
+            .into_iter()
+            .map(|y| {
+                classifier
+                    .push_sample(&settings, &rigid_sample(y, identity), identity)
+                    .phase
+            })
+            .collect();
+
+        assert!(phases.contains(&"inhale"));
+        assert_eq!(phases.last(), Some(&"exhale"));
+    }
+
+    #[test]
+    fn fixed_controller_state_classifier_marks_rotation_guard_as_bad_tracking() {
+        let mut settings = fixed_state_settings();
+        settings.rotation_guard_degrees = 0.5;
+        let mut classifier = FixedControllerStateClassifier::new(&settings);
+        let identity = [0.0, 0.0, 0.0, 1.0];
+        let flipped = [0.0, 1.0, 0.0, 0.0];
+
+        assert_eq!(
+            classifier
+                .push_sample(&settings, &rigid_sample(0.0, identity), identity)
+                .phase,
+            "pause"
+        );
+        let estimate = classifier.push_sample(&settings, &rigid_sample(0.002, flipped), flipped);
+        assert_eq!(estimate.phase, "bad_tracking");
+        assert_eq!(estimate.quality, "bad_tracking");
+    }
 }

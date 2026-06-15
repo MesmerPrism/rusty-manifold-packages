@@ -1,13 +1,12 @@
 {
   "$schema": "rusty.motion_breath_profile.v1",
-  "profile_id": "profile.projected_motion_breath.headset_controller_reference",
+  "profile_id": "profile.projected_motion_breath.headset_controller_fixed_orientation_state",
   "target_module_id": "module.breath.projected_motion",
   "input_kinds": [
-    "pose",
-    "vector3"
+    "pose"
   ],
   "projection": {
-    "mode": "principal_motion_axis",
+    "mode": "orientation_axis",
     "fallback_mode": "fixed_axis",
     "fixed_axis": [
       0.0,
@@ -16,7 +15,7 @@
     ]
   },
   "calibration": {
-    "accepted_sample_count": 120,
+    "accepted_sample_count": 8,
     "min_accepted_delta": 0.0008,
     "min_span": 0.02,
     "lower_quantile": 0.05,
@@ -37,7 +36,7 @@
     "stale_timeout_s": 1.0
   },
   "controller_state": {
-    "mode": "projected_volume_delta",
+    "mode": "fixed_controller_orientation",
     "orientation_axis": [
       0.0,
       0.0,
