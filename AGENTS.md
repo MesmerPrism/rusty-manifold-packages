@@ -84,6 +84,11 @@ first.
   `tools\projected_motion_breath_testkit.py`; do not rebuild PMB profile,
   command, source-adapter, source-binding, adapter-normalization, or golden
   fixture checks in the generic facade.
+- For projected-motion-breath, the profile and `command.breath.*` fixtures are
+  the master layer for calibration, source selection, stream names, and volume
+  projection controls. Controller, Polar, shell, or app adapters may only map
+  their inputs into those contracts; they must not define a parallel breath
+  scale or calibration model.
 - Put package-specific bridge validation in focused helper modules. The
   hand-animation Matter mesh/SDF/collider/particle bridge lives in
   `tools\hand_animation_matter_bridge.py`.
