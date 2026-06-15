@@ -87,6 +87,8 @@ pub(super) struct ProfileDocument {
     pub(super) classifier: ProfileClassifier,
     #[serde(default)]
     pub(super) controller_state: ProfileControllerStateClassifier,
+    #[serde(default)]
+    pub(super) state_value: ProfileStateValueProcessor,
     pub(super) quality: ProfileQuality,
 }
 
@@ -206,6 +208,87 @@ fn default_controller_state_neutral_volume01() -> f64 {
 }
 
 #[derive(Debug, Deserialize)]
+pub(super) struct ProfileStateValueProcessor {
+    #[serde(default = "default_state_value_enabled")]
+    pub(super) enabled: bool,
+    #[serde(default = "default_state_value_min_value01")]
+    pub(super) min_value01: f64,
+    #[serde(default = "default_state_value_max_value01")]
+    pub(super) max_value01: f64,
+    #[serde(default = "default_state_value_initial_value01")]
+    pub(super) initial_value01: f64,
+    #[serde(default = "default_state_value_fallback_value01")]
+    pub(super) fallback_value01: f64,
+    #[serde(default = "default_state_value_inhale_seconds_min_to_max")]
+    pub(super) inhale_seconds_min_to_max: f64,
+    #[serde(default = "default_state_value_exhale_seconds_max_to_min")]
+    pub(super) exhale_seconds_max_to_min: f64,
+    #[serde(default = "default_state_value_smoothing_s")]
+    pub(super) smoothing_s: f64,
+    #[serde(default = "default_state_value_stale_timeout_s")]
+    pub(super) stale_timeout_s: f64,
+    #[serde(default = "default_state_value_hold_bad_tracking")]
+    pub(super) hold_bad_tracking: bool,
+}
+
+impl Default for ProfileStateValueProcessor {
+    fn default() -> Self {
+        Self {
+            enabled: default_state_value_enabled(),
+            min_value01: default_state_value_min_value01(),
+            max_value01: default_state_value_max_value01(),
+            initial_value01: default_state_value_initial_value01(),
+            fallback_value01: default_state_value_fallback_value01(),
+            inhale_seconds_min_to_max: default_state_value_inhale_seconds_min_to_max(),
+            exhale_seconds_max_to_min: default_state_value_exhale_seconds_max_to_min(),
+            smoothing_s: default_state_value_smoothing_s(),
+            stale_timeout_s: default_state_value_stale_timeout_s(),
+            hold_bad_tracking: default_state_value_hold_bad_tracking(),
+        }
+    }
+}
+
+fn default_state_value_enabled() -> bool {
+    true
+}
+
+fn default_state_value_min_value01() -> f64 {
+    0.0
+}
+
+fn default_state_value_max_value01() -> f64 {
+    1.0
+}
+
+fn default_state_value_initial_value01() -> f64 {
+    0.5
+}
+
+fn default_state_value_fallback_value01() -> f64 {
+    0.5
+}
+
+fn default_state_value_inhale_seconds_min_to_max() -> f64 {
+    4.0
+}
+
+fn default_state_value_exhale_seconds_max_to_min() -> f64 {
+    4.0
+}
+
+fn default_state_value_smoothing_s() -> f64 {
+    0.03
+}
+
+fn default_state_value_stale_timeout_s() -> f64 {
+    1.0
+}
+
+fn default_state_value_hold_bad_tracking() -> bool {
+    true
+}
+
+#[derive(Debug, Deserialize)]
 pub(super) struct ProfileQuality {
     pub(super) require_tracked: bool,
     pub(super) min_quality01: f64,
@@ -221,6 +304,8 @@ pub(super) struct ProfilePatch {
     pub(super) classifier: Option<ClassifierPatch>,
     #[serde(default)]
     pub(super) controller_state: Option<ControllerStatePatch>,
+    #[serde(default)]
+    pub(super) state_value: Option<StateValuePatch>,
     #[serde(default)]
     pub(super) quality: Option<QualityPatch>,
 }
@@ -271,6 +356,30 @@ pub(super) struct ControllerStatePatch {
     pub(super) long_window: Option<u64>,
     #[serde(default)]
     pub(super) neutral_volume01: Option<f64>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+pub(super) struct StateValuePatch {
+    #[serde(default)]
+    pub(super) enabled: Option<bool>,
+    #[serde(default)]
+    pub(super) min_value01: Option<f64>,
+    #[serde(default)]
+    pub(super) max_value01: Option<f64>,
+    #[serde(default)]
+    pub(super) initial_value01: Option<f64>,
+    #[serde(default)]
+    pub(super) fallback_value01: Option<f64>,
+    #[serde(default)]
+    pub(super) inhale_seconds_min_to_max: Option<f64>,
+    #[serde(default)]
+    pub(super) exhale_seconds_max_to_min: Option<f64>,
+    #[serde(default)]
+    pub(super) smoothing_s: Option<f64>,
+    #[serde(default)]
+    pub(super) stale_timeout_s: Option<f64>,
+    #[serde(default)]
+    pub(super) hold_bad_tracking: Option<bool>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -522,6 +631,10 @@ pub(super) struct LiveRouteExpected {
     pub(super) min_source_route_count: usize,
     #[serde(default)]
     pub(super) min_breath_sample_count: usize,
+    #[serde(default)]
+    pub(super) min_state_sample_count: usize,
+    #[serde(default)]
+    pub(super) min_state_value_sample_count: usize,
     #[serde(default)]
     pub(super) min_feedback_sample_count: usize,
     #[serde(default)]

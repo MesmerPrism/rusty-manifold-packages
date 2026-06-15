@@ -38,6 +38,7 @@ def validate_projected_motion_breath(
         "module.motion.object_pose_provider",
         "module.motion.vector_provider",
         "module.breath.projected_motion",
+        "module.breath.state_value",
         "module.breath.dynamics",
         "module.breath.feedback_sink",
     }
@@ -49,6 +50,8 @@ def validate_projected_motion_breath(
         "stream.breath.volume.polar",
         "stream.breath.volume.controller",
         "stream.breath.selection_state",
+        "stream.breath.state",
+        "stream.breath.state.value",
         "stream.breath.dynamics",
         "stream.breath.feedback_state",
     }
@@ -628,7 +631,12 @@ def validate_projected_motion_profile(profile: dict[str, Any]) -> list[str]:
     if profile.get("target_module_id") != "module.breath.projected_motion":
         errors.append("issue.profile_invalid:target_module_id")
     input_kinds = profile.get("input_kinds", [])
-    if not isinstance(input_kinds, list) or {"pose", "vector3"} - set(input_kinds):
+    supported_input_kinds = {"pose", "vector3"}
+    if (
+        not isinstance(input_kinds, list)
+        or not input_kinds
+        or any(input_kind not in supported_input_kinds for input_kind in input_kinds)
+    ):
         errors.append("issue.profile_invalid:input_kinds")
 
     projection = profile.get("projection", {})
@@ -671,6 +679,12 @@ def validate_projected_motion_profile(profile: dict[str, Any]) -> list[str]:
         errors.append("issue.profile_invalid:classifier")
     else:
         errors += validate_projected_motion_classifier(classifier)
+
+    state_value = profile.get("state_value", {})
+    if state_value and not isinstance(state_value, dict):
+        errors.append("issue.profile_invalid:state_value")
+    elif isinstance(state_value, dict):
+        errors += validate_projected_motion_state_value(state_value)
 
     quality = profile.get("quality", {})
     if not isinstance(quality, dict):
@@ -728,6 +742,30 @@ def validate_projected_motion_classifier(classifier: dict[str, Any]) -> list[str
         errors.append("issue.profile_invalid:delta_threshold")
     if numeric(classifier.get("stale_timeout_s")) <= 0.0:
         errors.append("issue.profile_invalid:stale_timeout_s")
+    return errors
+
+
+def validate_projected_motion_state_value(state_value: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    min_value = numeric(state_value.get("min_value01", 0.0))
+    max_value = numeric(state_value.get("max_value01", 1.0))
+    initial_value = numeric(state_value.get("initial_value01", 0.5))
+    fallback_value = numeric(state_value.get("fallback_value01", 0.5))
+    if not (math.isfinite(min_value) and math.isfinite(max_value) and 0.0 <= min_value < max_value <= 1.0):
+        errors.append("issue.profile_invalid:state_value_limits")
+    if not (min_value <= initial_value <= max_value):
+        errors.append("issue.profile_invalid:state_value_initial")
+    if not (min_value <= fallback_value <= max_value):
+        errors.append("issue.profile_invalid:state_value_fallback")
+    for key in (
+        "inhale_seconds_min_to_max",
+        "exhale_seconds_max_to_min",
+        "stale_timeout_s",
+    ):
+        if numeric(state_value.get(key, 1.0)) <= 0.0:
+            errors.append(f"issue.profile_invalid:{key}")
+    if numeric(state_value.get("smoothing_s", 0.03)) < 0.0:
+        errors.append("issue.profile_invalid:smoothing_s")
     return errors
 
 
@@ -834,6 +872,9 @@ def validate_projected_motion_profile_patch(patch: dict[str, Any]) -> list[str]:
     classifier = patch.get("classifier")
     if isinstance(classifier, dict):
         errors += validate_projected_motion_classifier(classifier)
+    state_value = patch.get("state_value")
+    if isinstance(state_value, dict):
+        errors += validate_projected_motion_state_value(state_value)
     quality = patch.get("quality")
     if isinstance(quality, dict) and "min_quality01" in quality:
         min_quality = numeric(quality.get("min_quality01"))

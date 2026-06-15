@@ -6,6 +6,9 @@ use crate::documents::{
     ProfileControllerStateClassifier, ProfileDocument, SourceBinding,
 };
 use crate::math::*;
+use crate::state_value::{
+    breath_state01, normalize_breath_state, BreathStateValueConfig, BreathStateValueProcessor,
+};
 use crate::validation::{
     dedup_issue_codes, source_payload_kind_matches, validate_live_route_expected,
     validate_live_route_fixture, validate_live_transport_route_observed, validate_profile_document,
@@ -15,7 +18,7 @@ use crate::{
     classify_phase, motion_profile_from_document, normalize_adapter_sample, InputKind,
     ProjectedMotionBreathTracker, RigidMotionSample, ValidationError, VectorMotionSample,
     EXTERNAL_STREAM_POLAR_ACC, LIVE_ROUTE_REPORT_SCHEMA, STREAM_BREATH_FEEDBACK_STATE,
-    STREAM_BREATH_VOLUME, STREAM_OBJECT_POSE,
+    STREAM_BREATH_STATE, STREAM_BREATH_STATE_VALUE, STREAM_BREATH_VOLUME, STREAM_OBJECT_POSE,
 };
 use serde::Serialize;
 use std::collections::BTreeMap;
@@ -39,6 +42,8 @@ pub struct LiveRouteReport {
     pub plan_only: bool,
     pub source_routes: Vec<LiveSourceRouteReport>,
     pub breath_samples: Vec<LiveBreathSample>,
+    pub state_samples: Vec<LiveBreathStateSample>,
+    pub state_value_samples: Vec<LiveBreathStateValueSample>,
     pub feedback_samples: Vec<LiveFeedbackSample>,
     pub receiver_subscription: ReceiverBreathSubscriptionPlan,
     pub receiver_receipts: Vec<ReceiverBreathReceiptPlan>,
@@ -85,6 +90,38 @@ pub struct LiveFeedbackSample {
     pub sample_time_unix_ns: i64,
     pub volume01: f64,
     pub phase: String,
+    pub quality: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct LiveBreathStateSample {
+    pub sequence_id: u64,
+    pub stream_id: String,
+    pub source_breath_sequence_id: u64,
+    pub source_id: String,
+    pub sample_time_unix_ns: i64,
+    pub state: String,
+    pub state01: f64,
+    pub phase: String,
+    pub tracking01: f64,
+    pub quality: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct LiveBreathStateValueSample {
+    pub sequence_id: u64,
+    pub stream_id: String,
+    pub source_breath_sequence_id: u64,
+    pub source_state_sequence_id: u64,
+    pub source_id: String,
+    pub sample_time_unix_ns: i64,
+    pub state: String,
+    pub state01: f64,
+    pub target01: f64,
+    pub value01: f64,
+    pub delta_seconds: f64,
+    pub stale_gap: bool,
+    pub tracking01: f64,
     pub quality: String,
 }
 
@@ -190,6 +227,8 @@ pub struct LiveTransportProcessorUpdate {
     pub output_sample_count: usize,
     pub source_updates: Vec<LiveTransportSourceUpdate>,
     pub breath_samples: Vec<LiveBreathSample>,
+    pub state_samples: Vec<LiveBreathStateSample>,
+    pub state_value_samples: Vec<LiveBreathStateValueSample>,
     pub feedback_samples: Vec<LiveFeedbackSample>,
     pub issues: Vec<String>,
 }
@@ -272,6 +311,8 @@ impl LiveTransportProcessor {
         let mut event_sample_count = 0;
         let mut normalized_sample_count = 0;
         let mut breath_samples = Vec::new();
+        let mut state_samples = Vec::new();
+        let mut state_value_samples = Vec::new();
         let mut source_updates = Vec::new();
 
         let event: serde_json::Value = match serde_json::from_str(event_json) {
@@ -286,6 +327,8 @@ impl LiveTransportProcessor {
                     normalized_sample_count,
                     source_updates,
                     breath_samples,
+                    state_samples,
+                    state_value_samples,
                     vec![format!("issue.transport_event_json_invalid:{error}")],
                 );
             }
@@ -313,7 +356,11 @@ impl LiveTransportProcessor {
                                 normalized_sample_count += 1;
                                 let (mut produced, mut source_issues) = source
                                     .push_normalized_sample(normalized, &mut self.next_sequence_id);
+                                let (mut produced_state_samples, mut produced_state_value_samples) =
+                                    source.derive_state_outputs(&produced);
                                 breath_samples.append(&mut produced);
+                                state_samples.append(&mut produced_state_samples);
+                                state_value_samples.append(&mut produced_state_value_samples);
                                 issues.append(&mut source_issues);
                             }
                             Err(issue) => issues.push(format!(
@@ -339,6 +386,8 @@ impl LiveTransportProcessor {
             normalized_sample_count,
             source_updates,
             breath_samples,
+            state_samples,
+            state_value_samples,
             issues,
         )
     }
@@ -357,6 +406,8 @@ impl LiveTransportProcessor {
             0,
             0,
             source_updates,
+            Vec::new(),
+            Vec::new(),
             Vec::new(),
             Vec::new(),
         )
@@ -397,6 +448,8 @@ impl LiveTransportProcessor {
         normalized_sample_count: usize,
         source_updates: Vec<LiveTransportSourceUpdate>,
         breath_samples: Vec<LiveBreathSample>,
+        state_samples: Vec<LiveBreathStateSample>,
+        state_value_samples: Vec<LiveBreathStateValueSample>,
         issues: Vec<String>,
     ) -> LiveTransportProcessorUpdate {
         let feedback_samples = breath_samples
@@ -432,6 +485,8 @@ impl LiveTransportProcessor {
             output_sample_count: breath_samples.len(),
             source_updates,
             breath_samples,
+            state_samples,
+            state_value_samples,
             feedback_samples,
             issues,
         }
@@ -446,6 +501,7 @@ struct LiveTransportSourceProcessor {
     binding: SourceBinding,
     profile: ProfileDocument,
     state: LiveTransportSourceState,
+    state_value_processor: BreathStateValueProcessor,
     next_sample_index: usize,
     estimate_count: usize,
 }
@@ -472,6 +528,7 @@ impl LiveTransportSourceProcessor {
                 ))
             }
         };
+        let state_value_processor = BreathStateValueProcessor::new(state_value_config(&profile));
         Ok(Self {
             source_id: source_fixture.source_id,
             source_stream_id: source_fixture.source_stream_id,
@@ -480,6 +537,7 @@ impl LiveTransportSourceProcessor {
             binding,
             profile,
             state,
+            state_value_processor,
             next_sample_index: 0,
             estimate_count: 0,
         })
@@ -540,6 +598,17 @@ impl LiveTransportSourceProcessor {
         };
         self.estimate_count = self.estimate_count.saturating_add(result.0.len());
         result
+    }
+
+    fn derive_state_outputs(
+        &mut self,
+        breath_samples: &[LiveBreathSample],
+    ) -> (Vec<LiveBreathStateSample>, Vec<LiveBreathStateValueSample>) {
+        derive_breath_state_outputs(
+            &self.profile,
+            &mut self.state_value_processor,
+            breath_samples,
+        )
     }
 
     fn update_summary(&self) -> LiveTransportSourceUpdate {
@@ -1223,6 +1292,65 @@ fn live_breath_sample_with_quality(
     }
 }
 
+fn derive_breath_state_outputs(
+    profile: &ProfileDocument,
+    processor: &mut BreathStateValueProcessor,
+    breath_samples: &[LiveBreathSample],
+) -> (Vec<LiveBreathStateSample>, Vec<LiveBreathStateValueSample>) {
+    let mut state_samples = Vec::new();
+    let mut state_value_samples = Vec::new();
+    for sample in breath_samples {
+        let state = normalize_breath_state(&sample.phase).to_string();
+        let state_sample = LiveBreathStateSample {
+            sequence_id: sample.sequence_id,
+            stream_id: STREAM_BREATH_STATE.to_string(),
+            source_breath_sequence_id: sample.sequence_id,
+            source_id: sample.source_id.clone(),
+            sample_time_unix_ns: seconds_to_unix_ns(sample.sample_time_s),
+            state: state.clone(),
+            state01: breath_state01(&state),
+            phase: state.clone(),
+            tracking01: sample.tracking01,
+            quality: sample.quality.clone(),
+        };
+        if profile.state_value.enabled {
+            let step = processor.push(&state, sample.sample_time_s);
+            state_value_samples.push(LiveBreathStateValueSample {
+                sequence_id: sample.sequence_id,
+                stream_id: STREAM_BREATH_STATE_VALUE.to_string(),
+                source_breath_sequence_id: sample.sequence_id,
+                source_state_sequence_id: state_sample.sequence_id,
+                source_id: sample.source_id.clone(),
+                sample_time_unix_ns: state_sample.sample_time_unix_ns,
+                state: state.clone(),
+                state01: step.state01,
+                target01: step.target01,
+                value01: step.value01,
+                delta_seconds: step.delta_seconds,
+                stale_gap: step.stale_gap,
+                tracking01: sample.tracking01,
+                quality: sample.quality.clone(),
+            });
+        }
+        state_samples.push(state_sample);
+    }
+    (state_samples, state_value_samples)
+}
+
+fn state_value_config(profile: &ProfileDocument) -> BreathStateValueConfig {
+    BreathStateValueConfig {
+        min_value01: profile.state_value.min_value01,
+        max_value01: profile.state_value.max_value01,
+        initial_value01: profile.state_value.initial_value01,
+        fallback_value01: profile.state_value.fallback_value01,
+        inhale_seconds_min_to_max: profile.state_value.inhale_seconds_min_to_max,
+        exhale_seconds_max_to_min: profile.state_value.exhale_seconds_max_to_min,
+        smoothing_s: profile.state_value.smoothing_s,
+        stale_timeout_s: profile.state_value.stale_timeout_s,
+        hold_bad_tracking: profile.state_value.hold_bad_tracking,
+    }
+}
+
 fn controller_state_classifier_mode(
     settings: &ProfileControllerStateClassifier,
 ) -> ControllerStateClassifierMode {
@@ -1291,6 +1419,8 @@ fn run_live_route_with_source_samples(
     issues.extend(event_issues);
     let mut source_routes = Vec::new();
     let mut breath_samples = Vec::new();
+    let mut state_samples = Vec::new();
+    let mut state_value_samples = Vec::new();
     let mut next_sequence_id = 1_u64;
 
     for source_fixture in &fixture.sources {
@@ -1389,7 +1519,17 @@ fn run_live_route_with_source_samples(
             mode,
             &mut next_sequence_id,
         );
+        let mut state_value_processor =
+            BreathStateValueProcessor::new(state_value_config(&profile));
+        let (mut source_state_samples, mut source_state_value_samples) =
+            derive_breath_state_outputs(
+                &profile,
+                &mut state_value_processor,
+                &source_breath_samples,
+            );
         breath_samples.append(&mut source_breath_samples);
+        state_samples.append(&mut source_state_samples);
+        state_value_samples.append(&mut source_state_value_samples);
         issues.extend(source_issues);
         let estimate_count = breath_samples.len().saturating_sub(route_start_len);
         if mode.validate_fixture_expected
@@ -1444,6 +1584,8 @@ fn run_live_route_with_source_samples(
             &fixture,
             &source_routes,
             &breath_samples,
+            &state_samples,
+            &state_value_samples,
             &feedback_samples,
             &receiver_receipts,
         ));
@@ -1451,6 +1593,8 @@ fn run_live_route_with_source_samples(
         issues.extend(validate_live_transport_route_observed(
             &source_routes,
             &breath_samples,
+            &state_samples,
+            &state_value_samples,
             &feedback_samples,
         ));
     }
@@ -1473,6 +1617,8 @@ fn run_live_route_with_source_samples(
         plan_only: mode.plan_only,
         source_routes,
         breath_samples,
+        state_samples,
+        state_value_samples,
         feedback_samples,
         receiver_subscription: ReceiverBreathSubscriptionPlan {
             command: fixture.receiver.subscription_command,

@@ -1,19 +1,14 @@
 {
   "$schema": "rusty.manifold.module.runtime_state.v1",
-  "module_id": "module.breath.projected_motion",
+  "module_id": "module.breath.state_value",
   "runtime_revision": 1,
   "lifecycle": "running",
   "health": "healthy",
   "selected_backend": "backend.synthetic",
   "active_streams": [
-    "stream.breath.volume",
-    "stream.breath.state"
+    "stream.breath.state.value"
   ],
   "active_commands": [
-    "command.breath.configure",
-    "command.breath.set_profile",
-    "command.breath.begin_calibration",
-    "command.breath.reset_calibration",
     "command.breath.status"
   ],
   "issues": []

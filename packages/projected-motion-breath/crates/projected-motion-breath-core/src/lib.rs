@@ -7,14 +7,15 @@ use std::path::{Path, PathBuf};
 mod documents;
 mod live_route;
 mod math;
+mod state_value;
 mod validation;
 
 use documents::*;
 pub use live_route::{
     run_live_route_from_transport_events, run_live_route_self_test, LiveBreathSample,
-    LiveFeedbackSample, LiveRouteReport, LiveSourceRouteReport, LiveTransportProcessor,
-    LiveTransportProcessorUpdate, LiveTransportSourceUpdate, ReceiverBreathReceiptPlan,
-    ReceiverBreathSubscriptionPlan,
+    LiveBreathStateSample, LiveBreathStateValueSample, LiveFeedbackSample, LiveRouteReport,
+    LiveSourceRouteReport, LiveTransportProcessor, LiveTransportProcessorUpdate,
+    LiveTransportSourceUpdate, ReceiverBreathReceiptPlan, ReceiverBreathSubscriptionPlan,
 };
 use math::*;
 use validation::{
@@ -30,6 +31,8 @@ pub const STREAM_BREATH_VOLUME_SELECTED: &str = "stream.breath.volume.selected";
 pub const STREAM_BREATH_VOLUME_POLAR: &str = "stream.breath.volume.polar";
 pub const STREAM_BREATH_VOLUME_CONTROLLER: &str = "stream.breath.volume.controller";
 pub const STREAM_BREATH_SELECTION_STATE: &str = "stream.breath.selection_state";
+pub const STREAM_BREATH_STATE: &str = "stream.breath.state";
+pub const STREAM_BREATH_STATE_VALUE: &str = "stream.breath.state.value";
 pub const STREAM_BREATH_FEEDBACK_STATE: &str = "stream.breath.feedback_state";
 pub const EXTERNAL_STREAM_POLAR_ACC: &str = "bio:polar_acc";
 pub const PACKAGE_PROJECTED_MOTION_BREATH: &str = "package.projected_motion_breath";
@@ -729,6 +732,12 @@ mod tests {
             .contains(&STREAM_BREATH_VOLUME_SELECTED.to_string()));
         assert!(report
             .output_stream_ids
+            .contains(&STREAM_BREATH_STATE.to_string()));
+        assert!(report
+            .output_stream_ids
+            .contains(&STREAM_BREATH_STATE_VALUE.to_string()));
+        assert!(report
+            .output_stream_ids
             .contains(&STREAM_BREATH_FEEDBACK_STATE.to_string()));
         assert_eq!(
             report.receiver_subscription.command,
@@ -739,6 +748,8 @@ mod tests {
             STREAM_BREATH_VOLUME_SELECTED
         );
         assert_eq!(report.breath_samples.len(), 6);
+        assert_eq!(report.state_samples.len(), 6);
+        assert_eq!(report.state_value_samples.len(), 6);
         assert_eq!(report.feedback_samples.len(), 6);
         assert_eq!(report.receiver_receipts.len(), 6);
         assert!(report
@@ -807,6 +818,11 @@ mod tests {
         assert!(report.live_sensor_used);
         assert!(report.headset_execution_performed);
         assert!(report.breath_samples.len() >= 100);
+        assert_eq!(report.state_samples.len(), report.breath_samples.len());
+        assert_eq!(
+            report.state_value_samples.len(),
+            report.breath_samples.len()
+        );
         assert_eq!(report.feedback_samples.len(), report.breath_samples.len());
         assert_eq!(report.receiver_receipts.len(), report.breath_samples.len());
     }
@@ -819,6 +835,8 @@ mod tests {
         let mut first_output_event_index = None;
         let mut selected_source_effective = String::new();
         let mut output_count = 0_usize;
+        let mut state_count = 0_usize;
+        let mut state_value_count = 0_usize;
         let mut events = Vec::new();
         for index in 0..260 {
             let sample_time_ns = 1_000_000_000_i64 + (index as i64 * 100_000_000);
@@ -865,6 +883,8 @@ mod tests {
             if update.output_sample_count > 0 {
                 first_output_event_index.get_or_insert(event_index);
                 output_count += update.output_sample_count;
+                state_count += update.state_samples.len();
+                state_value_count += update.state_value_samples.len();
                 selected_source_effective = update.selected_source_effective;
             }
         }
@@ -873,6 +893,8 @@ mod tests {
             first_output_event_index.expect("processor emits before the stream ends");
         assert!(first_output_event_index < events.len() - 10);
         assert!(output_count > 10);
+        assert_eq!(state_count, output_count);
+        assert_eq!(state_value_count, output_count);
         assert_eq!(selected_source_effective, "polar");
     }
 

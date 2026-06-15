@@ -1,34 +1,23 @@
 {
   "$schema": "rusty.manifold.module.manifest.v1",
-  "module_id": "module.breath.projected_motion",
+  "module_id": "module.breath.state_value",
   "module_kind": "processor",
-  "label": "Projected Motion Breath",
+  "label": "Breath State Value",
   "version": "0.1.0",
   "lifecycle_states": [
     "available",
     "running",
-    "calibrating",
     "degraded",
     "stopped",
     "failed"
   ],
   "provides_streams": [
-    "stream.breath.volume",
-    "stream.breath.volume.selected",
-    "stream.breath.volume.polar",
-    "stream.breath.volume.controller",
-    "stream.breath.selection_state",
-    "stream.breath.state"
+    "stream.breath.state.value"
   ],
   "consumes_streams": [
-    "stream.motion.object_pose",
-    "stream.motion.vector3"
+    "stream.breath.state"
   ],
   "accepted_commands": [
-    "command.breath.configure",
-    "command.breath.set_profile",
-    "command.breath.begin_calibration",
-    "command.breath.reset_calibration",
     "command.breath.status"
   ],
   "required_capabilities": [
@@ -51,11 +40,8 @@
   ],
   "issue_codes": [
     "issue.input_stream_missing",
-    "issue.profile_invalid",
-    "issue.calibration_required",
-    "issue.calibration_invalid",
-    "issue.motion_quality_low",
+    "issue.quality_low",
     "issue.source_stale",
-    "issue.projection_unsupported"
+    "issue.profile_invalid"
   ]
 }

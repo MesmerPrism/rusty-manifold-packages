@@ -8,6 +8,7 @@
       "module.motion.object_pose_provider",
       "module.motion.vector_provider",
       "module.breath.projected_motion",
+      "module.breath.state_value",
       "module.breath.dynamics",
       "module.breath.feedback_sink"
     ],
@@ -19,6 +20,8 @@
       "stream.breath.volume.polar",
       "stream.breath.volume.controller",
       "stream.breath.selection_state",
+      "stream.breath.state",
+      "stream.breath.state.value",
       "stream.breath.dynamics",
       "stream.breath.feedback_state",
       "stream.breath.feedback_receipt"

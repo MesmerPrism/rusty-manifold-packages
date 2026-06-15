@@ -18,6 +18,8 @@
     "stream.breath.volume.polar",
     "stream.breath.volume.controller",
     "stream.breath.selection_state",
+    "stream.breath.state",
+    "stream.breath.state.value",
     "stream.breath.feedback_state"
   ],
   "external_transport_used": false,
@@ -186,6 +188,8 @@
   "expected": {
     "min_source_route_count": 2,
     "min_breath_sample_count": 6,
+    "min_state_sample_count": 6,
+    "min_state_value_sample_count": 6,
     "min_feedback_sample_count": 6,
     "min_receipt_count": 6,
     "required_phases": [

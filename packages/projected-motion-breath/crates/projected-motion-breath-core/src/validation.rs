@@ -99,6 +99,8 @@ pub fn validate_package_goldens(
 pub(super) fn validate_live_transport_route_observed(
     source_routes: &[LiveSourceRouteReport],
     breath_samples: &[LiveBreathSample],
+    state_samples: &[LiveBreathStateSample],
+    state_value_samples: &[LiveBreathStateValueSample],
     feedback_samples: &[LiveFeedbackSample],
 ) -> Vec<String> {
     let mut issues = Vec::new();
@@ -120,6 +122,12 @@ pub(super) fn validate_live_transport_route_observed(
     }
     if breath_samples.is_empty() {
         issues.push("issue.live_transport_breath_samples_missing".to_string());
+    }
+    if state_samples.is_empty() {
+        issues.push("issue.live_transport_state_samples_missing".to_string());
+    }
+    if state_value_samples.is_empty() {
+        issues.push("issue.live_transport_state_value_samples_missing".to_string());
     }
     if feedback_samples.is_empty() {
         issues.push("issue.live_transport_feedback_samples_missing".to_string());
@@ -200,6 +208,7 @@ pub(super) fn validate_profile_document(profile: &ProfileDocument) -> Vec<String
     issues.extend(validate_controller_state_classifier(
         &profile.controller_state,
     ));
+    issues.extend(validate_state_value_processor(&profile.state_value));
     issues.extend(validate_quality(
         profile.quality.require_tracked,
         profile.quality.min_quality01,
@@ -261,6 +270,33 @@ fn validate_controller_state_classifier(
         || classifier.long_window < classifier.short_window
         || !unit_interval(classifier.neutral_volume01)
     {
+        issues.push(BreathIssue::ProfileInvalid.code().to_string());
+    }
+    issues
+}
+
+fn validate_state_value_processor(processor: &ProfileStateValueProcessor) -> Vec<String> {
+    let mut issues = Vec::new();
+    let valid_limits = processor.min_value01.is_finite()
+        && processor.max_value01.is_finite()
+        && (0.0..=1.0).contains(&processor.min_value01)
+        && (0.0..=1.0).contains(&processor.max_value01)
+        && processor.min_value01 < processor.max_value01;
+    let values_valid = processor.initial_value01.is_finite()
+        && processor.fallback_value01.is_finite()
+        && processor.initial_value01 >= processor.min_value01
+        && processor.initial_value01 <= processor.max_value01
+        && processor.fallback_value01 >= processor.min_value01
+        && processor.fallback_value01 <= processor.max_value01;
+    let timing_valid = processor.inhale_seconds_min_to_max.is_finite()
+        && processor.inhale_seconds_min_to_max > 0.0
+        && processor.exhale_seconds_max_to_min.is_finite()
+        && processor.exhale_seconds_max_to_min > 0.0
+        && processor.smoothing_s.is_finite()
+        && processor.smoothing_s >= 0.0
+        && processor.stale_timeout_s.is_finite()
+        && processor.stale_timeout_s > 0.0;
+    if !valid_limits || !values_valid || !timing_valid {
         issues.push(BreathIssue::ProfileInvalid.code().to_string());
     }
     issues
@@ -392,6 +428,34 @@ fn validate_profile_patch(patch: &ProfilePatch) -> Vec<String> {
                 .unwrap_or(default.neutral_volume01),
         };
         issues.extend(validate_controller_state_classifier(&classifier));
+    }
+    if let Some(state_value) = &patch.state_value {
+        let default = ProfileStateValueProcessor::default();
+        let processor = ProfileStateValueProcessor {
+            enabled: state_value.enabled.unwrap_or(default.enabled),
+            min_value01: state_value.min_value01.unwrap_or(default.min_value01),
+            max_value01: state_value.max_value01.unwrap_or(default.max_value01),
+            initial_value01: state_value
+                .initial_value01
+                .unwrap_or(default.initial_value01),
+            fallback_value01: state_value
+                .fallback_value01
+                .unwrap_or(default.fallback_value01),
+            inhale_seconds_min_to_max: state_value
+                .inhale_seconds_min_to_max
+                .unwrap_or(default.inhale_seconds_min_to_max),
+            exhale_seconds_max_to_min: state_value
+                .exhale_seconds_max_to_min
+                .unwrap_or(default.exhale_seconds_max_to_min),
+            smoothing_s: state_value.smoothing_s.unwrap_or(default.smoothing_s),
+            stale_timeout_s: state_value
+                .stale_timeout_s
+                .unwrap_or(default.stale_timeout_s),
+            hold_bad_tracking: state_value
+                .hold_bad_tracking
+                .unwrap_or(default.hold_bad_tracking),
+        };
+        issues.extend(validate_state_value_processor(&processor));
     }
     if let Some(quality) = &patch.quality {
         if let Some(min_quality01) = quality.min_quality01 {
@@ -795,6 +859,8 @@ pub(super) fn validate_live_route_fixture(fixture: &LiveRouteFixture) -> Vec<Str
         STREAM_BREATH_VOLUME_POLAR,
         STREAM_BREATH_VOLUME_CONTROLLER,
         STREAM_BREATH_SELECTION_STATE,
+        STREAM_BREATH_STATE,
+        STREAM_BREATH_STATE_VALUE,
         STREAM_BREATH_FEEDBACK_STATE,
     ] {
         if !fixture
@@ -838,6 +904,8 @@ pub(super) fn validate_live_route_expected(
     fixture: &LiveRouteFixture,
     source_routes: &[LiveSourceRouteReport],
     breath_samples: &[LiveBreathSample],
+    state_samples: &[LiveBreathStateSample],
+    state_value_samples: &[LiveBreathStateValueSample],
     feedback_samples: &[LiveFeedbackSample],
     receipts: &[ReceiverBreathReceiptPlan],
 ) -> Vec<String> {
@@ -847,6 +915,12 @@ pub(super) fn validate_live_route_expected(
     }
     if breath_samples.len() < fixture.expected.min_breath_sample_count {
         issues.push("issue.live_route_breath_sample_count".to_string());
+    }
+    if state_samples.len() < fixture.expected.min_state_sample_count {
+        issues.push("issue.live_route_state_sample_count".to_string());
+    }
+    if state_value_samples.len() < fixture.expected.min_state_value_sample_count {
+        issues.push("issue.live_route_state_value_sample_count".to_string());
     }
     if feedback_samples.len() < fixture.expected.min_feedback_sample_count {
         issues.push("issue.live_route_feedback_sample_count".to_string());

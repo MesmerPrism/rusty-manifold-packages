@@ -36,6 +36,18 @@
     "delta_threshold": 0.003,
     "stale_timeout_s": 3.0
   },
+  "state_value": {
+    "enabled": true,
+    "min_value01": 0.0,
+    "max_value01": 1.0,
+    "initial_value01": 0.5,
+    "fallback_value01": 0.5,
+    "inhale_seconds_min_to_max": 4.0,
+    "exhale_seconds_max_to_min": 4.0,
+    "smoothing_s": 0.03,
+    "stale_timeout_s": 1.0,
+    "hold_bad_tracking": true
+  },
   "quality": {
     "require_tracked": false,
     "min_quality01": 0.0
