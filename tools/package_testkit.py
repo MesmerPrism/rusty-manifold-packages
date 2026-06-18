@@ -47,6 +47,7 @@ FORBIDDEN_TERMS = [
 ]
 WINDOWS_ABSOLUTE_PATH_RE = re.compile(r"\b[a-z]:[\\/]", re.IGNORECASE)
 BOUNDARY_SKIP = {
+    "AGENTS.md",
     "tools/check_packages.py",
     "tools/package_testkit.py",
     "tools/package_testkit_common.py",

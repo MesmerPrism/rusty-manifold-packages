@@ -102,12 +102,17 @@ pub(super) fn validate_live_transport_route_observed(
     state_samples: &[LiveBreathStateSample],
     state_value_samples: &[LiveBreathStateValueSample],
     feedback_samples: &[LiveFeedbackSample],
+    selected_source_preference: &str,
 ) -> Vec<String> {
     let mut issues = Vec::new();
-    if source_routes.len() < 2 {
+    let observed_routes: Vec<&LiveSourceRouteReport> = source_routes
+        .iter()
+        .filter(|route| live_route_source_observed_or_required(route, selected_source_preference))
+        .collect();
+    if observed_routes.is_empty() {
         issues.push("issue.live_transport_route_source_route_count".to_string());
     }
-    for route in source_routes {
+    for route in observed_routes {
         if route.sample_count == 0 {
             issues.push(format!(
                 "{}:issue.live_transport_samples_missing",
@@ -133,6 +138,28 @@ pub(super) fn validate_live_transport_route_observed(
         issues.push("issue.live_transport_feedback_samples_missing".to_string());
     }
     issues
+}
+
+fn live_route_source_observed_or_required(
+    route: &LiveSourceRouteReport,
+    selected_source_preference: &str,
+) -> bool {
+    let source_kind = live_route_source_kind(route);
+    match selected_source_preference {
+        "polar" | "controller" => source_kind == selected_source_preference,
+        _ => route.sample_count > 0 || route.estimate_count > 0,
+    }
+}
+
+fn live_route_source_kind(route: &LiveSourceRouteReport) -> String {
+    let text = format!("{} {}", route.selected_source_kind, route.source_stream_id).to_lowercase();
+    if text.contains("polar") || text.contains("wearable") || text.contains("bio:polar") {
+        "polar".to_string()
+    } else if text.contains("controller") || text.contains("object_pose") {
+        "controller".to_string()
+    } else {
+        "unknown".to_string()
+    }
 }
 
 fn prefix_issues(prefix: &str, issues: Vec<String>) -> Vec<String> {
@@ -268,6 +295,10 @@ fn validate_controller_state_classifier(
         || classifier.moving_average_guard <= 0.0
         || classifier.short_window == 0
         || classifier.long_window < classifier.short_window
+        || !classifier.short_window_s.is_finite()
+        || classifier.short_window_s <= 0.0
+        || !classifier.long_window_s.is_finite()
+        || classifier.long_window_s < classifier.short_window_s
         || !unit_interval(classifier.neutral_volume01)
     {
         issues.push(BreathIssue::ProfileInvalid.code().to_string());
@@ -422,6 +453,12 @@ fn validate_profile_patch(patch: &ProfilePatch) -> Vec<String> {
                 .short_window
                 .unwrap_or(default.short_window),
             long_window: controller_state.long_window.unwrap_or(default.long_window),
+            short_window_s: controller_state
+                .short_window_s
+                .unwrap_or(default.short_window_s),
+            long_window_s: controller_state
+                .long_window_s
+                .unwrap_or(default.long_window_s),
             invert_left_hand: default.invert_left_hand,
             neutral_volume01: controller_state
                 .neutral_volume01

@@ -12,9 +12,10 @@ mod validation;
 
 use documents::*;
 pub use live_route::{
-    run_live_route_from_transport_events, run_live_route_self_test, LiveBreathSample,
-    LiveBreathStateSample, LiveBreathStateValueSample, LiveFeedbackSample, LiveRouteReport,
-    LiveSourceRouteReport, LiveTransportProcessor, LiveTransportProcessorUpdate,
+    run_live_route_from_transport_events,
+    run_live_route_from_transport_events_with_source_preference, run_live_route_self_test,
+    LiveBreathSample, LiveBreathStateSample, LiveBreathStateValueSample, LiveFeedbackSample,
+    LiveRouteReport, LiveSourceRouteReport, LiveTransportProcessor, LiveTransportProcessorUpdate,
     LiveTransportSourceUpdate, ReceiverBreathReceiptPlan, ReceiverBreathSubscriptionPlan,
 };
 use math::*;
@@ -825,6 +826,55 @@ mod tests {
         );
         assert_eq!(report.feedback_samples.len(), report.breath_samples.len());
         assert_eq!(report.receiver_receipts.len(), report.breath_samples.len());
+    }
+
+    #[test]
+    fn controller_selected_transport_route_does_not_require_polar_samples() {
+        let package_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let events_path = std::env::temp_dir().join(format!(
+            "projected-motion-breath-controller-only-live-route-events-{}.jsonl",
+            std::process::id()
+        ));
+        let mut events = Vec::new();
+        for index in 0..260 {
+            let sample_time_ns = 1_000_000_000_i64 + (index as i64 * 100_000_000);
+            let transport_time_ns = sample_time_ns + 10_000_000;
+            let phase = (index as f64) * std::f64::consts::TAU * 0.015;
+            let wave = phase.sin();
+            events.push(
+                serde_json::json!({
+                    "type": "stream_event",
+                    "stream": STREAM_OBJECT_POSE,
+                    "transport_time_unix_ns": transport_time_ns,
+                    "payload": {
+                        "stream": STREAM_OBJECT_POSE,
+                        "sample_time_unix_ns": sample_time_ns,
+                        "transport_receive_time_unix_ns": transport_time_ns,
+                        "reference_space": "frame.headset.stage",
+                        "position_m": [0.15, 1.10 + (0.04 * wave), -0.20],
+                        "orientation_xyzw": [0.0, 0.0, 0.0, 1.0],
+                        "connected": true,
+                        "tracked": true,
+                        "quality01": 0.98
+                    }
+                })
+                .to_string(),
+            );
+        }
+        fs::write(&events_path, events.join("\n")).expect("events jsonl writes");
+        let report = run_live_route_from_transport_events_with_source_preference(
+            &package_root,
+            &events_path,
+            "controller",
+        )
+        .expect("controller-only transport events load");
+        let _ = fs::remove_file(&events_path);
+        assert_eq!(report.status, "pass");
+        assert!(report.breath_samples.len() > 10);
+        assert!(report
+            .issues
+            .iter()
+            .all(|issue| !issue.contains("polar") && !issue.contains("bio:polar")));
     }
 
     #[test]

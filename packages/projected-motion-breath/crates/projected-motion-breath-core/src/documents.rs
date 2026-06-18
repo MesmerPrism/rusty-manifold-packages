@@ -148,6 +148,10 @@ pub(super) struct ProfileControllerStateClassifier {
     pub(super) short_window: u64,
     #[serde(default = "default_controller_state_long_window")]
     pub(super) long_window: u64,
+    #[serde(default = "default_controller_state_short_window_s")]
+    pub(super) short_window_s: f64,
+    #[serde(default = "default_controller_state_long_window_s")]
+    pub(super) long_window_s: f64,
     #[serde(default)]
     pub(super) invert_left_hand: bool,
     #[serde(default = "default_controller_state_neutral_volume01")]
@@ -165,6 +169,8 @@ impl Default for ProfileControllerStateClassifier {
             moving_average_guard: default_controller_state_moving_average_guard(),
             short_window: default_controller_state_short_window(),
             long_window: default_controller_state_long_window(),
+            short_window_s: default_controller_state_short_window_s(),
+            long_window_s: default_controller_state_long_window_s(),
             invert_left_hand: false,
             neutral_volume01: default_controller_state_neutral_volume01(),
         }
@@ -201,6 +207,22 @@ fn default_controller_state_short_window() -> u64 {
 
 fn default_controller_state_long_window() -> u64 {
     180
+}
+
+// Legacy Unity fixed-controller state tuning used 24/180 samples.
+// The active headset profile runs this path at 72 Hz, so the master PMB
+// profile stores those spans explicitly in seconds.
+const LEGACY_FIXED_CONTROLLER_STATE_SAMPLE_RATE_HZ: f64 = 72.0;
+const LEGACY_FIXED_CONTROLLER_STATE_SHORT_WINDOW_SAMPLES: f64 = 24.0;
+const LEGACY_FIXED_CONTROLLER_STATE_LONG_WINDOW_SAMPLES: f64 = 180.0;
+
+fn default_controller_state_short_window_s() -> f64 {
+    LEGACY_FIXED_CONTROLLER_STATE_SHORT_WINDOW_SAMPLES
+        / LEGACY_FIXED_CONTROLLER_STATE_SAMPLE_RATE_HZ
+}
+
+fn default_controller_state_long_window_s() -> f64 {
+    LEGACY_FIXED_CONTROLLER_STATE_LONG_WINDOW_SAMPLES / LEGACY_FIXED_CONTROLLER_STATE_SAMPLE_RATE_HZ
 }
 
 fn default_controller_state_neutral_volume01() -> f64 {
@@ -354,6 +376,10 @@ pub(super) struct ControllerStatePatch {
     pub(super) short_window: Option<u64>,
     #[serde(default)]
     pub(super) long_window: Option<u64>,
+    #[serde(default)]
+    pub(super) short_window_s: Option<f64>,
+    #[serde(default)]
+    pub(super) long_window_s: Option<f64>,
     #[serde(default)]
     pub(super) neutral_volume01: Option<f64>,
 }
@@ -649,7 +675,7 @@ pub(super) enum NormalizedAdapterSample {
     Vector(VectorMotionSample),
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub(super) struct LiveRouteExecutionMode {
     pub(super) runtime_execution_performed: bool,
     pub(super) external_transport_used: bool,
@@ -657,6 +683,7 @@ pub(super) struct LiveRouteExecutionMode {
     pub(super) headset_execution_performed: bool,
     pub(super) plan_only: bool,
     pub(super) validate_fixture_expected: bool,
+    pub(super) selected_source_preference: String,
 }
 
 pub(super) fn read_golden(path: &Path) -> Result<GoldenFixture, ValidationError> {

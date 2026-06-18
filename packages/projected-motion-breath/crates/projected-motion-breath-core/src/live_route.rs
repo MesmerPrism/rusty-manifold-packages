@@ -168,6 +168,7 @@ pub fn run_live_route_self_test(
             headset_execution_performed: false,
             plan_only: true,
             validate_fixture_expected: true,
+            selected_source_preference: "auto".to_string(),
         },
     )
 }
@@ -175,6 +176,14 @@ pub fn run_live_route_self_test(
 pub fn run_live_route_from_transport_events(
     package_root: impl AsRef<Path>,
     events_jsonl: impl AsRef<Path>,
+) -> Result<LiveRouteReport, ValidationError> {
+    run_live_route_from_transport_events_with_source_preference(package_root, events_jsonl, "auto")
+}
+
+pub fn run_live_route_from_transport_events_with_source_preference(
+    package_root: impl AsRef<Path>,
+    events_jsonl: impl AsRef<Path>,
+    selected_source_preference: &str,
 ) -> Result<LiveRouteReport, ValidationError> {
     let package_root = package_root.as_ref();
     let fixture_path = package_root
@@ -196,6 +205,9 @@ pub fn run_live_route_from_transport_events(
             headset_execution_performed: true,
             plan_only: false,
             validate_fixture_expected: false,
+            selected_source_preference: normalize_live_selected_source_preference(
+                selected_source_preference,
+            ),
         },
     )
 }
@@ -877,13 +889,20 @@ struct FixedControllerStateEstimate {
     tracking01: f64,
 }
 
+#[derive(Clone, Copy, Debug)]
+struct FixedControllerDeltaPoint {
+    sample_time_s: f64,
+    accumulator: f64,
+}
+
 #[derive(Debug)]
 struct FixedControllerStateClassifier {
     orientation_axis: [f64; 3],
     last_position: Option<[f64; 3]>,
     last_orientation: [f64; 4],
+    last_sample_time_s: Option<f64>,
     delta_accumulator: f64,
-    delta_history: Vec<f64>,
+    delta_history: Vec<FixedControllerDeltaPoint>,
 }
 
 impl FixedControllerStateClassifier {
@@ -893,6 +912,7 @@ impl FixedControllerStateClassifier {
                 .unwrap_or([0.0, 0.0, -1.0]),
             last_position: None,
             last_orientation: [0.0, 0.0, 0.0, 1.0],
+            last_sample_time_s: None,
             delta_accumulator: 0.0,
             delta_history: Vec::new(),
         }
@@ -907,6 +927,7 @@ impl FixedControllerStateClassifier {
         let Some(last_position) = self.last_position else {
             self.last_position = Some(sample.position_m);
             self.last_orientation = orientation;
+            self.last_sample_time_s = Some(sample.sample_time_s);
             return FixedControllerStateEstimate {
                 projection: 0.0,
                 phase: "pause",
@@ -915,6 +936,12 @@ impl FixedControllerStateClassifier {
             };
         };
 
+        let fallback_sample_seconds = fixed_controller_fallback_sample_seconds(settings);
+        let sample_time_s = fixed_controller_sample_time_s(
+            sample.sample_time_s,
+            self.last_sample_time_s,
+            fallback_sample_seconds,
+        );
         let rotation_delta = quat_angle_degrees(self.last_orientation, orientation);
         let axis_world = rotate_vec3_by_quat(
             self.orientation_axis,
@@ -922,18 +949,30 @@ impl FixedControllerStateClassifier {
         );
         let delta = dot3(sub3(sample.position_m, last_position), axis_world);
         self.delta_accumulator += delta;
-        push_window(
+        push_timed_delta_point(
             &mut self.delta_history,
-            self.delta_accumulator,
-            settings.long_window as usize,
+            FixedControllerDeltaPoint {
+                sample_time_s,
+                accumulator: self.delta_accumulator,
+            },
+            settings.long_window_s,
         );
-        let short_mean = mean_trailing_f64(&self.delta_history, settings.short_window as usize);
-        let long_mean = mean_trailing_f64(&self.delta_history, self.delta_history.len());
+        let short_mean = mean_timed_delta_accumulator(
+            &self.delta_history,
+            sample_time_s,
+            settings.short_window_s,
+        );
+        let long_mean = mean_timed_delta_accumulator(
+            &self.delta_history,
+            sample_time_s,
+            settings.long_window_s,
+        );
         let ma_diff = short_mean - long_mean;
         self.last_position = Some(sample.position_m);
         self.last_orientation = orientation;
+        self.last_sample_time_s = Some(sample_time_s);
 
-        if rotation_delta > settings.rotation_guard_degrees
+        if fixed_controller_rotation_exceeds_guard(rotation_delta, settings.rotation_guard_degrees)
             || ma_diff.abs() > settings.moving_average_guard
         {
             return FixedControllerStateEstimate {
@@ -965,6 +1004,84 @@ impl FixedControllerStateClassifier {
             quality: "state_fixed_orientation",
             tracking01: sample.quality01,
         }
+    }
+}
+
+fn fixed_controller_fallback_sample_seconds(settings: &ProfileControllerStateClassifier) -> f64 {
+    let short_window_samples = settings.short_window.max(1) as f64;
+    let fallback = settings.short_window_s / short_window_samples;
+    if fallback.is_finite() && fallback > 0.0 {
+        fallback
+    } else {
+        1.0 / 72.0
+    }
+}
+
+fn fixed_controller_sample_time_s(
+    sample_time_s: f64,
+    last_sample_time_s: Option<f64>,
+    fallback_sample_seconds: f64,
+) -> f64 {
+    match (sample_time_s.is_finite(), last_sample_time_s) {
+        (true, Some(last)) if sample_time_s > last => sample_time_s,
+        (true, None) => sample_time_s,
+        _ => last_sample_time_s
+            .map(|last| last + fallback_sample_seconds)
+            .unwrap_or(0.0),
+    }
+}
+
+fn fixed_controller_rotation_exceeds_guard(
+    rotation_delta_degrees: f64,
+    guard_degrees_per_sample: f64,
+) -> bool {
+    rotation_delta_degrees > guard_degrees_per_sample
+}
+
+fn push_timed_delta_point(
+    history: &mut Vec<FixedControllerDeltaPoint>,
+    point: FixedControllerDeltaPoint,
+    long_window_s: f64,
+) {
+    if history
+        .last()
+        .is_some_and(|last| point.sample_time_s < last.sample_time_s)
+    {
+        history.clear();
+    }
+    history.push(point);
+    let cutoff = point.sample_time_s - long_window_s.max(1.0e-3);
+    let first_kept = history
+        .iter()
+        .position(|sample| sample.sample_time_s >= cutoff)
+        .unwrap_or_else(|| history.len().saturating_sub(1));
+    if first_kept > 0 {
+        history.drain(0..first_kept);
+    }
+}
+
+fn mean_timed_delta_accumulator(
+    history: &[FixedControllerDeltaPoint],
+    now_s: f64,
+    window_s: f64,
+) -> f64 {
+    let cutoff = now_s - window_s.max(1.0e-3);
+    let mut count = 0_u64;
+    let mut sum = 0.0;
+    for point in history.iter().rev() {
+        if point.sample_time_s < cutoff {
+            break;
+        }
+        count += 1;
+        sum += point.accumulator;
+    }
+    if count == 0 {
+        history
+            .last()
+            .map(|point| point.accumulator)
+            .unwrap_or_default()
+    } else {
+        sum / count as f64
     }
 }
 
@@ -1366,16 +1483,6 @@ fn controller_sample_is_left_hand(sample: &RigidMotionSample) -> bool {
     source_id.contains("left") || frame_id.contains("left")
 }
 
-fn mean_trailing_f64(values: &[f64], window: usize) -> f64 {
-    let len = values.len();
-    if len == 0 {
-        return 0.0;
-    }
-    let start = len.saturating_sub(window.max(1));
-    let count = len - start;
-    values[start..].iter().sum::<f64>() / count as f64
-}
-
 fn normalize_live_selected_source_preference(value: &str) -> String {
     match value {
         "polar" | "controller" => value.to_string(),
@@ -1392,6 +1499,14 @@ fn live_source_kind(selected_source_kind: &str, source_stream_id: &str) -> Strin
     } else {
         "unknown".to_string()
     }
+}
+
+fn live_source_matches_preference(preference: &str, source_kind: &str) -> bool {
+    preference == "auto" || preference == source_kind
+}
+
+fn live_source_required_for_preference(preference: &str, source_kind: &str) -> bool {
+    (preference == "polar" || preference == "controller") && preference == source_kind
 }
 
 fn is_polar_sample(sample: &LiveBreathSample) -> bool {
@@ -1417,6 +1532,8 @@ fn run_live_route_with_source_samples(
 ) -> Result<LiveRouteReport, ValidationError> {
     let mut issues = validate_live_route_fixture(&fixture);
     issues.extend(event_issues);
+    let selected_source_preference =
+        normalize_live_selected_source_preference(&mode.selected_source_preference);
     let mut source_routes = Vec::new();
     let mut breath_samples = Vec::new();
     let mut state_samples = Vec::new();
@@ -1429,7 +1546,12 @@ fn run_live_route_with_source_samples(
             .get(&source_fixture.source_stream_id)
             .map(Vec::as_slice)
             .unwrap_or(&[]);
-        if samples.is_empty() {
+        let route_source_kind = live_source_kind("", &source_fixture.source_stream_id);
+        let source_selected =
+            live_source_matches_preference(&selected_source_preference, &route_source_kind);
+        let source_required =
+            live_source_required_for_preference(&selected_source_preference, &route_source_kind);
+        if samples.is_empty() && source_required {
             issues.push(format!(
                 "{}:issue.source_samples_missing",
                 source_fixture.source_id
@@ -1475,6 +1597,21 @@ fn run_live_route_with_source_samples(
             issues.push(format!("{}:{}", source_fixture.source_id, issue.code()));
             continue;
         }
+        if !source_selected || samples.is_empty() {
+            source_routes.push(LiveSourceRouteReport {
+                source_id: source_fixture.source_id.clone(),
+                source_stream_id: source_fixture.source_stream_id.clone(),
+                normalized_stream_id: binding.selected_output_stream_id,
+                binding_id: binding.binding_id,
+                selected_adapter_id: binding.selected_adapter_id,
+                selected_source_kind: binding.selected_source_kind,
+                source_payload_kind: source_fixture.source_payload_kind.clone(),
+                sample_count: samples.len(),
+                normalized_sample_count: 0,
+                estimate_count: 0,
+            });
+            continue;
+        }
         let profile = match read_profile(&package_root.join(&binding.profile_path)) {
             Ok(profile) => profile,
             Err(error) => {
@@ -1516,7 +1653,7 @@ fn run_live_route_with_source_samples(
             &binding,
             &profile,
             &normalized_samples,
-            mode,
+            &mode,
             &mut next_sequence_id,
         );
         let mut state_value_processor =
@@ -1596,6 +1733,7 @@ fn run_live_route_with_source_samples(
             &state_samples,
             &state_value_samples,
             &feedback_samples,
+            &selected_source_preference,
         ));
     }
     issues = dedup_issue_codes(issues);
@@ -1635,7 +1773,7 @@ fn estimate_live_route_source_breath_samples(
     binding: &SourceBinding,
     profile: &ProfileDocument,
     normalized_samples: &[NormalizedAdapterSample],
-    mode: LiveRouteExecutionMode,
+    mode: &LiveRouteExecutionMode,
     next_sequence_id: &mut u64,
 ) -> (Vec<LiveBreathSample>, Vec<String>) {
     if mode.external_transport_used && !mode.plan_only {
@@ -2623,16 +2761,18 @@ mod tests {
             moving_average_guard: 0.25,
             short_window: 2,
             long_window: 4,
+            short_window_s: 0.2,
+            long_window_s: 0.4,
             invert_left_hand: false,
             neutral_volume01: 0.5,
         }
     }
 
-    fn rigid_sample(y: f64, orientation_xyzw: [f64; 4]) -> RigidMotionSample {
+    fn rigid_sample_at(t: f64, y: f64, orientation_xyzw: [f64; 4]) -> RigidMotionSample {
         RigidMotionSample {
             source_id: "source.downstream.controller_pose.right".to_string(),
-            sample_time_s: 1.0,
-            host_time_s: 1.01,
+            sample_time_s: t,
+            host_time_s: t + 0.01,
             frame_id: "frame.headset.stage.right".to_string(),
             position_m: [0.0, y, 0.0],
             orientation_xyzw: Some(orientation_xyzw),
@@ -2642,17 +2782,26 @@ mod tests {
         }
     }
 
+    fn rigid_sample(y: f64, orientation_xyzw: [f64; 4]) -> RigidMotionSample {
+        rigid_sample_at(1.0, y, orientation_xyzw)
+    }
+
     #[test]
     fn fixed_controller_state_classifier_detects_inhale_and_exhale() {
         let settings = fixed_state_settings();
         let mut classifier = FixedControllerStateClassifier::new(&settings);
         let identity = [0.0, 0.0, 0.0, 1.0];
 
-        let phases: Vec<&str> = [0.0, 0.002, 0.004, 0.006, 0.004, 0.002]
+        let phases: Vec<&str> = [0.0, 0.002, 0.004, 0.006, 0.004, 0.002, 0.0, -0.002]
             .into_iter()
-            .map(|y| {
+            .enumerate()
+            .map(|(index, y)| {
                 classifier
-                    .push_sample(&settings, &rigid_sample(y, identity), identity)
+                    .push_sample(
+                        &settings,
+                        &rigid_sample_at(index as f64 * 0.1, y, identity),
+                        identity,
+                    )
                     .phase
             })
             .collect();
@@ -2678,5 +2827,38 @@ mod tests {
         let estimate = classifier.push_sample(&settings, &rigid_sample(0.002, flipped), flipped);
         assert_eq!(estimate.phase, "bad_tracking");
         assert_eq!(estimate.quality, "bad_tracking");
+    }
+
+    #[test]
+    fn fixed_controller_state_classifier_uses_time_windows_across_cadences() {
+        fn phases_for_hz(sample_hz: f64) -> Vec<&'static str> {
+            let mut settings = fixed_state_settings();
+            settings.short_window_s = 0.3;
+            settings.long_window_s = 0.9;
+            settings.inhale_threshold = 0.0002;
+            settings.exhale_threshold = -0.0002;
+            let mut classifier = FixedControllerStateClassifier::new(&settings);
+            let identity = [0.0, 0.0, 0.0, 1.0];
+            let dt = 1.0 / sample_hz;
+            let sample_count = (2.0 * sample_hz).round() as usize;
+            (0..=sample_count)
+                .map(|index| {
+                    let t = index as f64 * dt;
+                    let y = if t <= 1.0 {
+                        t * 0.004
+                    } else {
+                        (2.0 - t).max(0.0) * 0.004
+                    };
+                    classifier
+                        .push_sample(&settings, &rigid_sample_at(t, y, identity), identity)
+                        .phase
+                })
+                .collect()
+        }
+
+        for phases in [phases_for_hz(10.0), phases_for_hz(90.0)] {
+            assert!(phases.contains(&"inhale"));
+            assert!(phases.contains(&"exhale"));
+        }
     }
 }

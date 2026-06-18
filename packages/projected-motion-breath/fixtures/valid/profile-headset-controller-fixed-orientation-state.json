@@ -27,7 +27,7 @@
     "progress_gamma": 1.0
   },
   "smoothing": {
-    "analysis_rate_hz": 10.0,
+    "analysis_rate_hz": 72.0,
     "median_window": 5,
     "ema_alpha": 0.18
   },
@@ -48,6 +48,8 @@
     "moving_average_guard": 0.025,
     "short_window": 24,
     "long_window": 180,
+    "short_window_s": 0.3333333333333333,
+    "long_window_s": 2.5,
     "invert_left_hand": true,
     "neutral_volume01": 0.5
   },
